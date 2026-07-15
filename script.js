@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMealsControls();
   initSettingsControls();
   initKeyboardShortcuts();
+  initCrocodile(); // Load the interactive 3D crocodile assistant
   
   // Initial state synchronization
   recalculateMealsTotals();
@@ -913,4 +914,219 @@ function initPageRouting() {
       }
     });
   }
+}
+
+/**
+ * 3D Interactive Crocodile Clinical Assistant Setup (Vanilla Three.js)
+ */
+function initCrocodile() {
+  const container = document.getElementById('cocodrilo-canvas-container');
+  if (!container) return;
+
+  // Limits from Blender metadata
+  const LIMITES = {
+    ojo: {
+      maxX: 0.939293, minX: -1.05972,
+      maxY: 0.907181, minY: -0.666336,
+    },
+    brillo: {
+      maxX: 0.76577, minX: -0.699181,
+      maxY: 0.449474, minY: -0.7129,
+    }
+  };
+
+  // Mouse tracking state
+  let mouseX = 0;
+  let mouseY = 0;
+
+  window.addEventListener('mousemove', (e) => {
+    // Normalize coordinates relative to viewport center (-1 to 1)
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+  });
+
+  // Scene setup
+  const scene = new THREE.Scene();
+
+  // Camera
+  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+  camera.position.set(0, 0, 3.8);
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 2.2);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  directionalLight.position.set(0, 5, 5);
+  scene.add(directionalLight);
+
+  // GLTF Model Loader
+  const loader = new THREE.GLTFLoader();
+  loader.load('assets/cocodrilo_interactivo.glb', (gltf) => {
+    const model = gltf.scene;
+
+    // Rotation and scaling
+    model.rotation.set(0, Math.PI, 0);
+    model.position.set(0, -0.6, 0);
+    model.scale.set(1.6, 1.6, 1.6);
+    scene.add(model);
+
+    // Skeleton, Bones and Animations
+    let huesoOjoR, huesoOjoL, huesoBrilloR, huesoBrilloL;
+    let posOrigOjoR, posOrigOjoL, posOrigBrilloR, posOrigBrilloL;
+    let esqueletoMaestro = null;
+    let mixer;
+
+    model.traverse((child) => {
+      // Catch node bones (handle both dot and sanitised names)
+      if (child.name === 'ojoR' || child.name === 'ojo.R') {
+        huesoOjoR = child;
+        posOrigOjoR = child.position.clone();
+        child.matrixAutoUpdate = true;
+        child.matrixWorldNeedsUpdate = true;
+      }
+      if (child.name === 'ojoL' || child.name === 'ojo.L') {
+        huesoOjoL = child;
+        posOrigOjoL = child.position.clone();
+        child.matrixAutoUpdate = true;
+        child.matrixWorldNeedsUpdate = true;
+      }
+      if (child.name === 'brilloR' || child.name === 'brillo.R') {
+        huesoBrilloR = child;
+        posOrigBrilloR = child.position.clone();
+        child.matrixAutoUpdate = true;
+        child.matrixWorldNeedsUpdate = true;
+      }
+      if (child.name === 'brilloL' || child.name === 'brillo.L') {
+        huesoBrilloL = child;
+        posOrigBrilloL = child.position.clone();
+        child.matrixAutoUpdate = true;
+        child.matrixWorldNeedsUpdate = true;
+      }
+
+      if (child.isSkinnedMesh && child.skeleton) {
+        esqueletoMaestro = child.skeleton;
+      }
+
+      if (child.isMesh) {
+        child.frustumCulled = false;
+        if (child.morphTargetInfluences) {
+          child.matrixAutoUpdate = true;
+        }
+      }
+    });
+
+    const animations = gltf.animations;
+    if (animations && animations.length > 0) {
+      // Remove eye/glow tracks from keyframe animation so our manual overrides work
+      animations.forEach((clip) => {
+        clip.tracks = clip.tracks.filter((track) =>
+          !track.name.includes('ojo') && !track.name.includes('brillo')
+        );
+      });
+
+      mixer = new THREE.AnimationMixer(model);
+      animations.forEach((clip) => {
+        const action = mixer.clipAction(clip);
+        action.reset().play().setEffectiveWeight(1);
+      });
+    }
+
+    // Elastic spring physics variables
+    let velBrilloR = new THREE.Vector3();
+    let velBrilloL = new THREE.Vector3();
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // 1. Clock frame time sync
+      if (animations && animations.length > 0 && mixer) {
+        const clipPrincipal = animations[0];
+        mixer.setTime(clock.getElapsedTime() % clipPrincipal.duration);
+      }
+
+      // 2. Map pointer coordinates
+      let pointerX = -mouseX;
+      let pointerY = mouseY;
+
+      const length = Math.sqrt(pointerX * pointerX + pointerY * pointerY);
+      if (length > 1) {
+        pointerX /= length;
+        pointerY /= length;
+      }
+
+      const targetOjoX = pointerX > 0 ? pointerX * LIMITES.ojo.maxX : pointerX * Math.abs(LIMITES.ojo.minX);
+      const targetOjoY = pointerY > 0 ? pointerY * LIMITES.ojo.maxY : pointerY * Math.abs(LIMITES.ojo.minY);
+
+      const targetBrilloX = pointerX > 0 ? pointerX * LIMITES.brillo.maxX : pointerX * Math.abs(LIMITES.brillo.minX);
+      const targetBrilloY = pointerY > 0 ? pointerY * LIMITES.brillo.maxY : pointerY * Math.abs(LIMITES.brillo.minY);
+
+      // 3. Apply eye translation offset
+      if (huesoOjoR && posOrigOjoR) {
+        huesoOjoR.position.x = posOrigOjoR.x + targetOjoX;
+        huesoOjoR.position.y = posOrigOjoR.y + targetOjoY;
+        huesoOjoR.position.z = posOrigOjoR.z;
+      }
+      if (huesoOjoL && posOrigOjoL) {
+        huesoOjoL.position.x = posOrigOjoL.x + targetOjoX;
+        huesoOjoL.position.y = posOrigOjoL.y + targetOjoY;
+        huesoOjoL.position.z = posOrigOjoL.z;
+      }
+
+      // Damped spring physics for eye highlight glimmers
+      const k = 0.12;
+      const amortiguacion = 0.82;
+
+      if (huesoBrilloR && posOrigBrilloR) {
+        const distX = (posOrigBrilloR.x + targetBrilloX) - huesoBrilloR.position.x;
+        const distY = (posOrigBrilloR.y + targetBrilloY) - huesoBrilloR.position.y;
+        const distZ = posOrigBrilloR.z - huesoBrilloR.position.z;
+
+        velBrilloR.x = (velBrilloR.x + distX * k) * amortiguacion;
+        velBrilloR.y = (velBrilloR.y + distY * k) * amortiguacion;
+        velBrilloR.z = (velBrilloR.z + distZ * k) * amortiguacion;
+
+        huesoBrilloR.position.x += velBrilloR.x;
+        huesoBrilloR.position.y += velBrilloR.y;
+        huesoBrilloR.position.z += velBrilloR.z;
+      }
+
+      if (huesoBrilloL && posOrigBrilloL) {
+        const distX = (posOrigBrilloL.x + targetBrilloX) - huesoBrilloL.position.x;
+        const distY = (posOrigBrilloL.y + targetBrilloY) - huesoBrilloL.position.y;
+        const distZ = posOrigBrilloL.z - huesoBrilloL.position.z;
+
+        velBrilloL.x = (velBrilloL.x + distX * k) * amortiguacion;
+        velBrilloL.y = (velBrilloL.y + distY * k) * amortiguacion;
+        velBrilloL.z = (velBrilloL.z + distZ * k) * amortiguacion;
+
+        huesoBrilloL.position.x += velBrilloL.x;
+        huesoBrilloL.position.y += velBrilloL.y;
+        huesoBrilloL.position.z += velBrilloL.z;
+      }
+
+      if (esqueletoMaestro) {
+        esqueletoMaestro.update();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+  });
 }
