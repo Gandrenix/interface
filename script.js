@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initCarousel();
   initNavigation();
   initCardInteractions();
+  initPageRouting();
+  initBackgroundVideoClick();
 });
 
 /**
@@ -424,4 +426,200 @@ function openSettingsModal() {
   document.body.appendChild(modal);
 
   setTimeout(() => modal.style.opacity = '1', 50);
+}
+
+/**
+ * Landing Page to Dashboard Section Routing & Animations
+ */
+function initPageRouting() {
+  const landingPage = document.getElementById('landing-page');
+  const dashboardPage = document.getElementById('dashboard-page');
+
+  if (!landingPage || !dashboardPage) return;
+
+  // Transition Page function
+  function switchPage(toPage, activeTab = null) {
+    playClickSound();
+    
+    const currentPage = toPage === 'dashboard' ? landingPage : dashboardPage;
+    const nextPage = toPage === 'dashboard' ? dashboardPage : landingPage;
+
+    // Apply fade/scale transition Out
+    currentPage.style.opacity = '0';
+    currentPage.style.transform = 'scale(0.96)';
+    
+    // Controlar opacidad de capas de fondo e inicio/pausa de video
+    const bgImage = document.querySelector('.background-image-container');
+    const bgVideoContainer = document.querySelector('.background-video-container');
+    const bgVideo = document.querySelector('.background-video');
+
+    if (toPage === 'dashboard') {
+      if (bgImage) bgImage.classList.add('opaque');
+      if (bgVideoContainer) bgVideoContainer.style.opacity = '0';
+      if (bgVideo) bgVideo.pause(); // Pausar video en el Dashboard
+    } else {
+      if (bgImage) bgImage.classList.remove('opaque');
+      if (bgVideoContainer) bgVideoContainer.style.opacity = '1';
+      if (bgVideo) bgVideo.play().catch(e => console.warn('Error al reproducir al volver a Home:', e));
+    }
+    
+    setTimeout(() => {
+      currentPage.style.display = 'none';
+      currentPage.classList.remove('active');
+
+      nextPage.style.display = 'flex';
+      // Force repaint to make sure transition plays
+      nextPage.offsetHeight;
+      nextPage.classList.add('active');
+      
+      setTimeout(() => {
+        nextPage.style.opacity = '1';
+        nextPage.style.transform = 'scale(1)';
+      }, 50);
+
+      // Tab highlighting configuration
+      if (toPage === 'dashboard') {
+        if (activeTab) {
+          activateDashboardTab(activeTab);
+        }
+      }
+    }, 450); // matching transition curve duration
+  }
+
+  // Hook buttons
+  const launchBtn = document.getElementById('launch-dashboard-btn');
+  if (launchBtn) launchBtn.addEventListener('click', () => switchPage('dashboard'));
+
+  const playCtaBtn = document.getElementById('cta-nav-play');
+  if (playCtaBtn) playCtaBtn.addEventListener('click', () => switchPage('dashboard', 'games'));
+
+  const footerGamesBtn = document.getElementById('footer-btn-games');
+  if (footerGamesBtn) footerGamesBtn.addEventListener('click', () => switchPage('dashboard', 'games'));
+
+  // Cards direct links
+  const gamesCard = document.getElementById('card-games-btn');
+  if (gamesCard) gamesCard.addEventListener('click', () => switchPage('dashboard', 'games'));
+
+  const socialCard = document.getElementById('card-social-btn');
+  if (socialCard) socialCard.addEventListener('click', () => switchPage('dashboard', 'friends'));
+
+  const achCard = document.getElementById('card-achievements-btn');
+  if (achCard) achCard.addEventListener('click', () => switchPage('dashboard', 'achievements'));
+
+  const storeCard = document.getElementById('card-store-btn');
+  if (storeCard) storeCard.addEventListener('click', () => switchPage('dashboard', 'media'));
+
+  // Header Nav Items Navigation
+  const landingNavItems = document.querySelectorAll('.landing-nav-item');
+  landingNavItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = item.getAttribute('data-target');
+      
+      landingNavItems.forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+
+      if (target === 'home') {
+        // Stay here
+      } else if (target === 'library') {
+        switchPage('dashboard', 'games');
+      } else if (target === 'social') {
+        switchPage('dashboard', 'friends');
+      } else if (target === 'achievements') {
+        switchPage('dashboard', 'achievements');
+      } else if (target === 'about') {
+        switchPage('dashboard');
+      }
+    });
+  });
+
+  // Return to Landing: logo area in dashboard
+  const dashboardLogo = document.querySelector('.header-bar .logo-area');
+  if (dashboardLogo) {
+    dashboardLogo.style.cursor = 'pointer';
+    dashboardLogo.addEventListener('click', () => {
+      resetLandingNav();
+      switchPage('landing');
+    });
+  }
+
+  // Return to Landing: Home link in dashboard header
+  const dashboardHomeNav = Array.from(document.querySelectorAll('.header-bar .nav-item')).find(item => item.textContent.trim() === 'Home');
+  if (dashboardHomeNav) {
+    dashboardHomeNav.addEventListener('click', (e) => {
+      e.preventDefault();
+      resetLandingNav();
+      switchPage('landing');
+    });
+  }
+
+  // Return to Landing: Home link in dashboard sidebar
+  const dashboardSidebarHome = Array.from(document.querySelectorAll('.sidebar .menu-item')).find(item => {
+    const text = item.querySelector('span');
+    return text && text.textContent.trim() === 'Home';
+  });
+  if (dashboardSidebarHome) {
+    dashboardSidebarHome.addEventListener('click', (e) => {
+      e.preventDefault();
+      resetLandingNav();
+      switchPage('landing');
+    });
+  }
+
+  function resetLandingNav() {
+    landingNavItems.forEach(nav => {
+      if (nav.getAttribute('data-target') === 'home') {
+        nav.classList.add('active');
+      } else {
+        nav.classList.remove('active');
+      }
+    });
+  }
+
+  function activateDashboardTab(tabName) {
+    // 1. Sidebar menu active element
+    const sidebarItems = document.querySelectorAll('.sidebar .menu-item');
+    sidebarItems.forEach(item => {
+      const text = item.querySelector('span');
+      if (text && text.textContent.trim().toLowerCase() === tabName) {
+        sidebarItems.forEach(sib => sib.classList.remove('active'));
+        item.classList.add('active');
+      }
+    });
+
+    // 2. Header nav active element
+    const headerNavItems = document.querySelectorAll('.header-bar .nav-item');
+    headerNavItems.forEach(item => {
+      if (item.textContent.trim().toLowerCase() === tabName || (tabName === 'games' && item.textContent.trim() === 'Discover')) {
+        headerNavItems.forEach(sib => sib.classList.remove('active'));
+        item.classList.add('active');
+      }
+    });
+  }
+
+  // Hook watch trailer button
+  const watchTrailerBtn = document.getElementById('watch-trailer-btn');
+  if (watchTrailerBtn) {
+    watchTrailerBtn.addEventListener('click', () => {
+      launchGame("AeroSphere Trailer");
+    });
+  }
+}
+
+/**
+ * Initialize background video click-to-play on landing page (runs only once)
+ */
+function initBackgroundVideoClick() {
+  const landingPage = document.getElementById('landing-page');
+  const video = document.querySelector('.background-video');
+
+  if (landingPage && video) {
+    landingPage.addEventListener('click', () => {
+      if (video.paused) {
+        video.play().then(() => {
+          console.log('Video de fondo: reproducción iniciada tras clic de fallback.');
+        }).catch(err => console.warn('Fallo al reproducir en clic:', err));
+      }
+    }, { once: true }); // Solo escuchar el primer clic para evitar disparar reproducciones repetidas
+  }
 }

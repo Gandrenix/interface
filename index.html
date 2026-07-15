@@ -10,43 +10,372 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&family=Space+Grotesk:wght@600&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+  <!-- Imagen de fondo base en capa separada para evitar cubrir el video -->
+  <div class="background-image-container"></div>
+
+  <!-- Video de fondo ambiental sutil (reproducción única) -->
+  <div class="background-video-container">
+    <video autoplay muted playsinline class="background-video">
+      <source src="assets/vitruvio FINAL0001-1244.mp4" type="video/mp4">
+    </video>
+  </div>
+
   <!-- Dynamic ambient light particles behind panels -->
   <div class="ambient-glow bg-glow-blue"></div>
   <div class="ambient-glow bg-glow-green"></div>
+  
+  <!-- Ondas fluidas de fondo para la landing (estilo de imagen de referencia) -->
+  <div class="ambient-wave wave-cyan"></div>
+  <div class="ambient-wave wave-green"></div>
+  <div class="ambient-wave wave-blue"></div>
 
-  <div class="app-container">
+  <!-- SECCIÓN DE BIENVENIDA / LANDING PAGE -->
+  <div id="landing-page" class="page-section active">
+    <div class="landing-container">
+      
+      <!-- Menú / Header Píldora de la Landing -->
+      <header class="landing-header">
+        <div class="logo-area-landing">
+          <div class="logo-orb-landing">
+            <img src="assets/logo.png" alt="AeroSphere Logo" width="52" height="52" class="logo-img-landing">
+          </div>
+          <span class="logo-text-landing">SomaCore</span>
+        </div>
+        
+        <nav class="landing-nav glass-panel">
+          <a href="#" class="landing-nav-item active" data-target="home">Home</a>
+          <a href="#" class="landing-nav-item" data-target="library">Library</a>
+          <a href="#" class="landing-nav-item" data-target="social">Social</a>
+          <a href="#" class="landing-nav-item" data-target="achievements">Achievements</a>
+          <a href="#" class="landing-nav-item" data-target="about">About</a>
+        </nav>
+        
+        <div class="landing-header-right">
+          <button class="btn-play-cta btn" id="cta-nav-play">
+            <span>Let's Play</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Hero Section -->
+      <section class="landing-hero">
+        <div class="hero-left">
+          <div class="badge-tech glass-panel">
+            <span class="badge-dot"></span>
+            <span>Next-Gen Gaming Hub</span>
+          </div>
+          
+          <h1 class="hero-title-landing">
+            Explore.<br>Connect.<br><span class="gradient-text">Play.</span>
+            <span class="star-accent">✦</span>
+          </h1>
+          
+          <p class="hero-subtitle-landing">
+            Dive into AeroSphere, the ultimate gaming ecosystem where you can play the latest blockbusters, connect with friends globally, and build your gaming legacy.
+          </p>
+          
+          <div class="hero-buttons-landing">
+            <button class="btn btn-primary" id="launch-dashboard-btn">
+              <span>Launch Dashboard</span>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="arrow-icon">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+            <button class="btn btn-secondary btn-secondary-landing" id="watch-trailer-btn">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" class="play-icon">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>Watch Trailer</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Esfera gigante animada con la mascota en su interior -->
+        <div class="hero-right-mascot">
+          <div class="mascot-orb-container">
+            <div class="bubble-orb bubble-1"></div>
+            <div class="bubble-orb bubble-2"></div>
+            <div class="bubble-orb bubble-3"></div>
+            <div class="bubble-orb bubble-4"></div>
+            
+            <div class="giant-glass-sphere glass-panel">
+              <div class="mascot-wrapper">
+                <img src="assets/avatar-player1.png" alt="AeroSphere Mascot" class="mascot-image">
+              </div>
+              <div class="orbital-ring ring-1"></div>
+              <div class="orbital-ring ring-2"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Barra de estadísticas flotante -->
+      <section class="landing-stats-row glass-panel">
+        <div class="stat-item-landing">
+          <div class="stat-icon-wrapper cyan-glow">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </div>
+          <div class="stat-details-landing">
+            <h3>150+</h3>
+            <p>Games Playable</p>
+          </div>
+        </div>
+        <div class="stat-divider-landing"></div>
+        
+        <div class="stat-item-landing">
+          <div class="stat-icon-wrapper green-glow">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div class="stat-details-landing">
+            <h3>500K+</h3>
+            <p>Active Players</p>
+          </div>
+        </div>
+        <div class="stat-divider-landing"></div>
+        
+        <div class="stat-item-landing">
+          <div class="stat-icon-wrapper yellow-glow">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="7"></circle>
+              <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+            </svg>
+          </div>
+          <div class="stat-details-landing">
+            <h3>98%</h3>
+            <p>Positive Rating</p>
+          </div>
+        </div>
+        <div class="stat-divider-landing"></div>
+        
+        <div class="stat-item-landing">
+          <div class="stat-icon-wrapper purple-glow">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <div class="stat-details-landing">
+            <h3>Global</h3>
+            <p>Gaming Network</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fila de 4 tarjetas de características en vidrio 3D -->
+      <section class="landing-features-grid">
+        
+        <!-- Tarjeta 1: Explore Games (Azul) -->
+        <div class="feature-card glass-panel card-blue" id="card-games-btn">
+          <div class="card-badge bg-blue-light">Play</div>
+          <div class="card-text-landing">
+            <h2>Explore Library</h2>
+            <p>Access our curated collection of featured games including Halo, Forza Horizon and Starfield.</p>
+          </div>
+          
+          <!-- Ilustración de cristal 3D (Cian/Azul) -->
+          <div class="card-svg-container">
+            <svg class="glass-3d-svg" viewBox="0 0 200 200" width="120" height="120">
+              <defs>
+                <linearGradient id="blueGlassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(11, 212, 231, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(2, 59, 156, 0.1)" />
+                </linearGradient>
+                <linearGradient id="neonBlueGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0bd4e7" />
+                  <stop offset="100%" stop-color="#023b9c" />
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="85" fill="none" stroke="url(#neonBlueGlow)" stroke-width="1.5" stroke-dasharray="10 5" opacity="0.3" class="rotate-anim" />
+              <rect x="50" y="50" width="100" height="90" rx="16" fill="url(#blueGlassGrad)" stroke="rgba(11, 212, 231, 0.4)" stroke-width="1.5" transform="rotate(-10 100 100)" />
+              <rect x="65" y="65" width="70" height="16" rx="8" fill="rgba(255, 255, 255, 0.15)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" transform="rotate(-10 100 100)" />
+              <circle cx="78" cy="73" r="4" fill="#0bd4e7" transform="rotate(-10 100 100)" />
+              <rect x="65" y="88" width="30" height="40" rx="6" fill="url(#neonBlueGlow)" opacity="0.6" transform="rotate(-10 100 100)" />
+              <rect x="101" y="88" width="34" height="18" rx="5" fill="rgba(255, 255, 255, 0.08)" transform="rotate(-10 100 100)" />
+              <rect x="101" y="110" width="34" height="18" rx="5" fill="rgba(255, 255, 255, 0.08)" transform="rotate(-10 100 100)" />
+              <circle cx="150" cy="120" r="14" fill="url(#blueGlassGrad)" stroke="#0bd4e7" stroke-width="1" />
+              <polygon points="147,117 155,120 147,123" fill="#0bd4e7" />
+            </svg>
+          </div>
+          
+          <div class="card-arrow-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Tarjeta 2: Social Connect (Verde) -->
+        <div class="feature-card glass-panel card-green" id="card-social-btn">
+          <div class="card-badge bg-green-light">Social</div>
+          <div class="card-text-landing">
+            <h2>Social Connect</h2>
+            <p>Join clubs, check which of your friends are currently online, and coordinate multiplayer matches.</p>
+          </div>
+          
+          <!-- Ilustración de cristal 3D (Verde) -->
+          <div class="card-svg-container">
+            <svg class="glass-3d-svg" viewBox="0 0 200 200" width="120" height="120">
+              <defs>
+                <linearGradient id="greenGlassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(118, 224, 18, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(7, 21, 0, 0.1)" />
+                </linearGradient>
+                <linearGradient id="neonGreenGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8bf023" />
+                  <stop offset="100%" stop-color="#4ecb1b" />
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="85" fill="none" stroke="url(#neonGreenGlow)" stroke-width="1.5" stroke-dasharray="10 5" opacity="0.3" class="rotate-anim-reverse" />
+              <rect x="52" y="55" width="96" height="85" rx="20" fill="url(#greenGlassGrad)" stroke="rgba(118, 224, 18, 0.4)" stroke-width="1.5" transform="rotate(5 100 100)" />
+              <path d="M 75 107 L 88 95 L 75 83 M 125 83 L 112 95 L 125 107 M 105 77 L 95 113" fill="none" stroke="url(#neonGreenGlow)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" transform="rotate(5 100 100)" />
+              <circle cx="140" cy="70" r="16" fill="url(#greenGlassGrad)" stroke="#76E012" stroke-width="1" />
+              <circle cx="140" cy="70" r="6" fill="#76E012" class="pulse-anim" />
+            </svg>
+          </div>
+          
+          <div class="card-arrow-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Tarjeta 3: Achievements (Amarillo) -->
+        <div class="feature-card glass-panel card-yellow" id="card-achievements-btn">
+          <div class="card-badge bg-yellow-light">Rank</div>
+          <div class="card-text-landing">
+            <h2>Track Achievements</h2>
+            <p>Earn Gamerscore, level up your profile card, and unlock awards by playing active titles.</p>
+          </div>
+          
+          <!-- Ilustración de cristal 3D (Amarillo/Oro) -->
+          <div class="card-svg-container">
+            <svg class="glass-3d-svg" viewBox="0 0 200 200" width="120" height="120">
+              <defs>
+                <linearGradient id="yellowGlassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(255, 204, 0, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(40, 30, 0, 0.1)" />
+                </linearGradient>
+                <linearGradient id="neonYellowGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ffdd33" />
+                  <stop offset="100%" stop-color="#ffaa00" />
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="85" fill="none" stroke="url(#neonYellowGlow)" stroke-width="1.5" stroke-dasharray="10 5" opacity="0.3" class="rotate-anim" />
+              <path d="M 100 45 L 125 90 L 115 125 L 85 125 L 75 90 Z" fill="url(#yellowGlassGrad)" stroke="rgba(255, 204, 0, 0.5)" stroke-width="1.5" transform="rotate(-15 100 100)" />
+              <path d="M 100 45 L 100 100 M 96 100 A 4 4 0 1 1 100 96 A 4 4 0 0 1 100 100" fill="none" stroke="url(#neonYellowGlow)" stroke-width="3" stroke-linecap="round" transform="rotate(-15 100 100)" />
+              <ellipse cx="100" cy="120" rx="30" ry="12" fill="none" stroke="url(#neonYellowGlow)" stroke-width="3" transform="rotate(-5 100 100)" />
+              <polygon points="140,55 143,62 150,65 143,68 140,75 137,68 130,65 137,62" fill="#ffcc00" />
+            </svg>
+          </div>
+          
+          <div class="card-arrow-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Tarjeta 4: Media/Store (Morado) -->
+        <div class="feature-card glass-panel card-purple" id="card-store-btn">
+          <div class="card-badge bg-purple-light">Media</div>
+          <div class="card-text-landing">
+            <h2>Media & clips</h2>
+            <p>Capture screenshots, record high-definition game clips, and share them directly to the community feed.</p>
+          </div>
+          
+          <!-- Ilustración de cristal 3D (Morado) -->
+          <div class="card-svg-container">
+            <svg class="glass-3d-svg" viewBox="0 0 200 200" width="120" height="120">
+              <defs>
+                <linearGradient id="purpleGlassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(195, 0, 255, 0.4)" />
+                  <stop offset="100%" stop-color="rgba(30, 0, 45, 0.1)" />
+                </linearGradient>
+                <linearGradient id="neonPurpleGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#d833ff" />
+                  <stop offset="100%" stop-color="#8a00e6" />
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="85" fill="none" stroke="url(#neonPurpleGlow)" stroke-width="1.5" stroke-dasharray="10 5" opacity="0.3" class="rotate-anim" />
+              <rect x="50" y="65" width="100" height="80" rx="14" fill="url(#purpleGlassGrad)" stroke="rgba(195, 0, 255, 0.5)" stroke-width="1.5" transform="rotate(12 100 100)" />
+              <polygon points="90,85 120,105 90,125" fill="url(#neonPurpleGlow)" stroke="rgba(255, 255, 255, 0.3)" stroke-width="1" stroke-linejoin="round" transform="rotate(12 100 100)" />
+              <ellipse cx="100" cy="105" rx="65" ry="25" fill="none" stroke="url(#neonPurpleGlow)" stroke-width="2" stroke-dasharray="15 8" transform="rotate(-25 100 100)" />
+            </svg>
+          </div>
+          
+          <div class="card-arrow-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Footer de Landing Page -->
+      <footer class="landing-footer">
+        <div class="trusted-by">
+          <span>Trusted by amazing gamers</span>
+          <div class="partners-logos">
+            <div class="partner-logo"><span class="logo-icon-pt">◆</span> PIXELWAVE</div>
+            <div class="partner-logo"><span class="logo-icon-pt">▲</span> LUNAR STUDIO</div>
+            <div class="partner-logo"><span class="logo-icon-pt">●</span> NEONPEAK</div>
+            <div class="partner-logo"><span class="logo-icon-pt">■</span> ORBITAL</div>
+            <div class="partner-logo"><span class="logo-icon-pt">▼</span> VECTORA</div>
+          </div>
+        </div>
+        
+        <button class="btn-all-clients btn-secondary btn" id="footer-btn-games">
+          <span>Explore All Games</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- SECCIÓN DEL DASHBOARD PRINCIPAL (ENVUELTO) -->
+  <div id="dashboard-page" class="page-section">
+    <div class="app-container">
     
     <!-- HEADER BAR -->
     <header class="header-bar glass-panel">
       <div class="logo-area">
-        <!-- Logo Orb SVG -->
+        <!-- Logo Orb IMG -->
         <div class="logo-orb">
-          <svg viewBox="0 0 100 100" width="40" height="40" class="orb-svg">
-            <defs>
-              <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#4df313" />
-                <stop offset="50%" stop-color="#0bd4e7" />
-                <stop offset="100%" stop-color="#023b9c" />
-              </linearGradient>
-              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-            <circle cx="50" cy="50" r="45" fill="none" stroke="url(#orbGrad)" stroke-width="8" filter="url(#glow)" />
-            <path d="M 50,5 A 45,45 0 0,1 95,50 A 25,25 0 0,0 70,50 A 20,20 0 0,1 50,30 Z" fill="url(#orbGrad)" />
-            <path d="M 50,95 A 45,45 0 0,1 5,50 A 25,25 0 0,0 30,50 A 20,20 0 0,1 50,70 Z" fill="url(#orbGrad)" style="transform: rotate(180deg); transform-origin: 50% 50%;" />
-          </svg>
+          <img src="assets/logo.png" alt="AeroSphere Logo" width="55" height="55" class="logo-img">
         </div>
         <div class="logo-text">
-          <h1>AeroSphere</h1>
-          <span class="tagline">Experience the Future</span>
+          <h1>SomaCore</h1>
         </div>
       </div>
 
@@ -447,7 +776,8 @@
       </div>
     </footer>
 
-  </div>
+  </div> <!-- End of .app-container -->
+  </div> <!-- End of #dashboard-page -->
 
   <script src="script.js"></script>
 </body>
