@@ -1,14 +1,110 @@
-/* ==========================================
-   AeroSphere Interactive Controls & Logic
-   ========================================== */
+/* ==========================================================
+   NutriTrack Pro - Interactive Dashboard Logic & System States
+   ========================================================== */
+
+// Global System States (USDA FDC & Custom Local Storage simulation)
+let systemState = {
+  user: {
+    name: "Dr. Alberto A.",
+    age: 34,
+    weight: 76,
+    gender: "male",
+    climate: "temperate",
+    activity: "moderate",
+    caloriesTarget: 2200,
+    waterTarget: 2500,
+    audioEnabled: true
+  },
+  hydration: {
+    consumed: 1250,
+    directLiquids: {
+      pureWater: 900,
+      infusions: 350
+    },
+    foodWater: 350
+  },
+  meals: [
+    {
+      id: "bf-1",
+      category: "breakfast",
+      name: "Organic Oat Flakes",
+      portion: "100g serving",
+      kcal: 380,
+      protein: 12,
+      carbs: 65,
+      fat: 8,
+      source: "USDA"
+    },
+    {
+      id: "lu-1",
+      category: "lunch",
+      name: "Grilled Chicken Breast",
+      portion: "150g serving",
+      kcal: 250,
+      protein: 42,
+      carbs: 0,
+      fat: 4,
+      source: "USDA"
+    },
+    {
+      id: "lu-2",
+      category: "lunch",
+      name: "White Quinoa Cooked",
+      portion: "180g serving",
+      kcal: 440,
+      protein: 13,
+      carbs: 75,
+      fat: 8,
+      source: "USDA"
+    },
+    {
+      id: "sn-1",
+      category: "snacks",
+      name: "Greek Yogurt 2% Fat",
+      portion: "200g serving",
+      kcal: 380,
+      protein: 43,
+      carbs: 10,
+      fat: 25,
+      source: "custom"
+    }
+  ]
+};
+
+// Navigation Maps
+const tabToModuleMap = {
+  'dashboard': 'dashboard',
+  'nutrition': 'meals', // default sub-tab of Nutrition
+  'analytics': 'analytics',
+  'reports': 'reports',
+  'settings': 'settings',
+  'support': 'support'
+};
+
+const moduleToTabMap = {
+  'dashboard': 'dashboard',
+  'hydration': 'nutrition',
+  'meals': 'nutrition',
+  'micronutrients': 'nutrition',
+  'analytics': 'analytics',
+  'reports': 'reports',
+  'settings': 'settings',
+  'support': 'support'
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
-  initCarousel();
-  initNavigation();
+  initWorkspaceNavigation();
   initCardInteractions();
   initPageRouting();
-  initBackgroundVideoClick();
+  initHydrationControls();
+  initMealsControls();
+  initSettingsControls();
+  initKeyboardShortcuts();
+  
+  // Initial state synchronization
+  recalculateMealsTotals();
+  updateHydrationUI();
 });
 
 /**
@@ -26,10 +122,10 @@ function initClock() {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
-    hours = hours ? hours : 12; // 0 should be 12
+    hours = hours ? hours : 12;
     const timeStr = `${hours}:${minutes} ${ampm}`;
     
-    // Date formatting: e.g. June 8, 2024
+    // Date formatting: e.g. July 15, 2026
     const months = [
       "January", "February", "March", "April", "May", "June", 
       "July", "August", "September", "October", "November", "December"
@@ -44,201 +140,637 @@ function initClock() {
     if (timeStrElement) timeStrElement.textContent = timeStr;
   }
 
-  // Initial call and run every second
   updateClock();
   setInterval(updateClock, 1000);
 }
 
 /**
- * Games Carousel Controller
+ * Unified Sidebar & Header Navigation Routing
  */
-function initCarousel() {
-  const track = document.getElementById('carousel-track');
-  const cards = Array.from(document.querySelectorAll('.game-card'));
-  const indicators = Array.from(document.querySelectorAll('.indicator'));
-  const prevBtn = document.getElementById('carousel-prev');
-  const nextBtn = document.getElementById('carousel-next');
-  
-  if (!track || cards.length === 0) return;
-
-  let activeIndex = 0;
-
-  // Set active game and update view
-  function setActiveSlide(index) {
-    // Clamp index
-    if (index < 0) index = cards.length - 1;
-    if (index >= cards.length) index = 0;
-
-    // Toggle active state classes
-    cards.forEach((card, i) => {
-      if (i === index) {
-        card.classList.add('active');
-      } else {
-        card.classList.remove('active');
-      }
-    });
-
-    indicators.forEach((indicator, i) => {
-      if (i === index) {
-        indicator.classList.add('active');
-      } else {
-        indicator.classList.remove('active');
-      }
-    });
-
-    activeIndex = index;
-
-    // Scroll track if necessary (only needed if items overflow, like on tablet/mobile)
-    const containerWidth = track.parentElement.offsetWidth;
-    const trackWidth = track.scrollWidth;
-    
-    if (trackWidth > containerWidth) {
-      const cardWidth = cards[0].offsetWidth;
-      const gap = 15; // gap in px
-      
-      // Calculate scroll offset to center or align active card
-      let offset = index * (cardWidth + gap);
-      
-      // Prevent scrolling beyond boundaries
-      const maxOffset = trackWidth - containerWidth;
-      if (offset > maxOffset) offset = maxOffset;
-      
-      track.style.transform = `translateX(-${offset}px)`;
-    } else {
-      // Reset transform if everything fits
-      track.style.transform = 'translateX(0)';
-    }
-  }
-
-  // Arrow navigation
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
-      setActiveSlide(activeIndex - 1);
-      playClickSound();
-    });
-  }
-
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
-      setActiveSlide(activeIndex + 1);
-      playClickSound();
-    });
-  }
-
-  // Bullet indicators navigation
-  indicators.forEach((indicator) => {
-    indicator.addEventListener('click', (e) => {
-      const targetIndex = parseInt(e.target.getAttribute('data-slide'));
-      setActiveSlide(targetIndex);
-      playClickSound();
-    });
-  });
-
-  // Card click navigation
-  cards.forEach((card, index) => {
-    card.addEventListener('click', () => {
-      if (activeIndex !== index) {
-        setActiveSlide(index);
-        playClickSound();
-      } else {
-        // Active card click: Launch game animation!
-        launchGame(card.querySelector('.game-title').textContent);
-      }
-    });
-  });
-
-  // Handle window resizing to adjust alignment of slider
-  window.addEventListener('resize', () => {
-    setActiveSlide(activeIndex);
-  });
-}
-
-/**
- * Sidebar and Navigation Active Item Toggles
- */
-function initNavigation() {
-  // Sidebar Items
+function initWorkspaceNavigation() {
   const sidebarItems = document.querySelectorAll('.sidebar .menu-item');
+  const headerTabs = document.querySelectorAll('.header-bar .nav-item');
+
+  // Sidebar link actions
   sidebarItems.forEach(item => {
     item.addEventListener('click', (e) => {
-      // Don't override settings button if it has special actions
-      if (item.classList.contains('settings-btn')) {
-        openSettingsModal();
-        return;
+      e.preventDefault();
+      const module = item.getAttribute('data-module');
+      if (module) {
+        navigateToModule(module);
       }
-      
-      sidebarItems.forEach(sib => sib.classList.remove('active'));
-      item.classList.add('active');
-      playClickSound();
     });
   });
 
-  // Top Header Nav Items
-  const headerNavItems = document.querySelectorAll('.header-bar .nav-item');
-  headerNavItems.forEach(item => {
-    item.addEventListener('click', (e) => {
+  // Top header tab actions
+  headerTabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
       e.preventDefault();
-      headerNavItems.forEach(sib => sib.classList.remove('active'));
-      item.classList.add('active');
-      playClickSound();
+      const tabName = tab.getAttribute('data-tab');
+      if (tabName) {
+        const correspondingModule = tabToModuleMap[tabName];
+        navigateToModule(correspondingModule);
+      }
+    });
+  });
+
+  // Quick Action Buttons on Dashboard
+  const quickGoButtons = document.querySelectorAll('[data-go]');
+  quickGoButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetModule = btn.getAttribute('data-go');
+      if (targetModule) {
+        navigateToModule(targetModule);
+      }
     });
   });
 }
 
 /**
- * Mouse Move Card Tilting 3D Parallax Effects
+ * Centralized Module Navigator
+ */
+function navigateToModule(moduleName) {
+  if (!moduleName) return;
+  
+  playClickSound();
+
+  // 1. Update Workspaces Visibility
+  const workspaces = document.querySelectorAll('.workspace-section');
+  workspaces.forEach(ws => {
+    ws.classList.remove('active');
+    if (ws.id === `workspace-${moduleName}`) {
+      ws.classList.add('active');
+    }
+  });
+
+  // 2. Update Context Panels Visibility
+  const panels = document.querySelectorAll('.context-panel-section');
+  panels.forEach(panel => {
+    panel.classList.remove('active');
+    if (panel.id === `panel-${moduleName}`) {
+      panel.classList.add('active');
+    }
+  });
+
+  // 3. Highlight active left sidebar item
+  const sidebarItems = document.querySelectorAll('.sidebar .menu-item');
+  sidebarItems.forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('data-module') === moduleName || 
+       (moduleName === 'support' && item.classList.contains('settings-btn')) // Support doesn't highlight
+    ) {
+      if (moduleName !== 'support') {
+        item.classList.add('active');
+      }
+    }
+  });
+
+  // 4. Highlight active top tab
+  const activeTabName = moduleToTabMap[moduleName];
+  const headerTabs = document.querySelectorAll('.header-bar .nav-item');
+  headerTabs.forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.getAttribute('data-tab') === activeTabName) {
+      tab.classList.add('active');
+    }
+  });
+}
+
+/**
+ * State Manager: Hydration
+ */
+function initHydrationControls() {
+  const btnAdd = document.getElementById('btn-add-water');
+  const btnRemove = document.getElementById('btn-remove-water');
+  const dbQuickAdd = document.getElementById('db-quick-add-water');
+
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      modifyWater(250);
+    });
+  }
+
+  if (btnRemove) {
+    btnRemove.addEventListener('click', () => {
+      modifyWater(-250);
+    });
+  }
+
+  if (dbQuickAdd) {
+    dbQuickAdd.addEventListener('click', (e) => {
+      e.stopPropagation();
+      modifyWater(250);
+    });
+  }
+}
+
+function modifyWater(amount) {
+  systemState.hydration.consumed = Math.max(0, systemState.hydration.consumed + amount);
+  
+  // Adjust direct liquids split dynamically for simulation
+  if (amount > 0) {
+    systemState.hydration.directLiquids.pureWater += amount;
+  } else {
+    systemState.hydration.directLiquids.pureWater = Math.max(0, systemState.hydration.directLiquids.pureWater + amount);
+  }
+
+  playClickSound(amount > 0 ? 659.25 : 440.00); // E5 for add, A4 for subtract
+  updateHydrationUI();
+}
+
+function updateHydrationUI() {
+  const consumed = systemState.hydration.consumed;
+  const target = systemState.user.waterTarget;
+  const percent = Math.min(100, (consumed / target) * 100);
+
+  // Dashboard readouts
+  const dbConsumed = document.getElementById('db-water-consumed');
+  const dbProgress = document.getElementById('db-water-progress-bar');
+  const dbBriefText = document.querySelector('.hydration-brief .hyd-stats');
+
+  if (dbConsumed) dbConsumed.textContent = consumed.toLocaleString();
+  if (dbProgress) dbProgress.style.width = `${percent}%`;
+  if (dbBriefText) {
+    const diff = Math.max(0, target - consumed);
+    dbBriefText.textContent = `${percent.toFixed(1)}% of daily target reached (${diff.toLocaleString()}ml left)`;
+  }
+
+  // Hydration Workspace readouts
+  const hydConsumedVal = document.getElementById('hyd-consumed-val');
+  const hydTargetVal = document.getElementById('hyd-target-val');
+  const fillLevel = document.getElementById('water-fill-level');
+
+  if (hydConsumedVal) hydConsumedVal.textContent = consumed.toLocaleString();
+  if (hydTargetVal) hydTargetVal.textContent = target.toLocaleString();
+  if (fillLevel) fillLevel.style.height = `${percent}%`;
+
+  // Hydration timeline panel events
+  const timelineContainer = document.querySelector('.hydration-timeline-events');
+  if (timelineContainer) {
+    timelineContainer.innerHTML = '';
+    
+    // Add default events based on consumed volume
+    let logs = [];
+    if (consumed >= 500) logs.push({ time: "08:30 AM", text: "Logged +500 ml Pure Water" });
+    if (consumed >= 750) logs.push({ time: "11:00 AM", text: "Logged +250 ml Organic Infusion" });
+    if (consumed >= 1250) logs.push({ time: "01:30 PM", text: "Logged +500 ml Pure Water" });
+    
+    let remainingVal = consumed - (500 + 250 + 500);
+    if (remainingVal > 0) {
+      logs.push({ time: "Recent Log", text: `Logged +${remainingVal} ml Liquid Balance` });
+    }
+
+    logs.forEach(log => {
+      const eventEl = document.createElement('div');
+      eventEl.className = 'timeline-event';
+      eventEl.style.borderLeft = '2px solid #0bd4e7';
+      eventEl.style.paddingLeft = '10px';
+      eventEl.style.marginBottom = '12px';
+      eventEl.innerHTML = `<span class="event-time" style="font-size: 10px; color: var(--text-muted);">${log.time}</span><p style="font-size:12px;">${log.text}</p>`;
+      timelineContainer.appendChild(eventEl);
+    });
+  }
+
+  // Update diagnostic overall health score dynamically
+  calculateOverallBioScore();
+}
+
+/**
+ * State Manager: Meals Diary (CRUD Logs)
+ */
+function initMealsControls() {
+  const container = document.querySelector('.meals-timeline-container');
+  if (!container) return;
+
+  // Add click handler for Duplicating, Deleting, or Editing cards
+  container.addEventListener('click', (e) => {
+    const target = e.target;
+    const card = target.closest('.food-log-card');
+    if (!card) return;
+
+    const id = card.getAttribute('data-food-id');
+
+    if (target.classList.contains('btn-delete-food')) {
+      deleteFoodItem(id, card);
+    } else if (target.classList.contains('btn-duplicate-food')) {
+      duplicateFoodItem(id);
+    } else if (target.classList.contains('btn-edit-food')) {
+      alert("Edit food feature: Match USDA database interface.");
+    }
+  });
+
+  // Recently Added Panel Action Quick Adds
+  const quickAdds = document.querySelectorAll('.btn-add-recent');
+  quickAdds.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.getAttribute('data-food');
+      const kcal = parseInt(btn.getAttribute('data-kcal'));
+      const macroStr = btn.getAttribute('data-macros'); // P/C/F
+      const parts = macroStr.replace(/g/g, '').split('/');
+      
+      const protein = parseInt(parts[0]);
+      const carbs = parseInt(parts[1]);
+      const fat = parseInt(parts[2]);
+
+      addNewFoodItem("lunch", name, kcal, protein, carbs, fat);
+    });
+  });
+}
+
+function addNewFoodItem(category, name, kcal, protein, carbs, fat) {
+  const newId = `${category.substring(0, 2)}-${Date.now()}`;
+  const newItem = {
+    id: newId,
+    category: category,
+    name: name,
+    portion: "Custom serving",
+    kcal: kcal,
+    protein: protein,
+    carbs: carbs,
+    fat: fat,
+    source: "custom"
+  };
+
+  systemState.meals.push(newItem);
+  renderMealsWorkspace();
+  recalculateMealsTotals();
+  playClickSound(659.25); // high chirp
+}
+
+function deleteFoodItem(id, cardEl) {
+  systemState.meals = systemState.meals.filter(item => item.id !== id);
+  cardEl.classList.add('removing');
+  setTimeout(() => {
+    cardEl.remove();
+    recalculateMealsTotals();
+    renderMealsWorkspace();
+  }, 300);
+  playClickSound(329.63); // low beep (E4)
+}
+
+function duplicateFoodItem(id) {
+  const sourceItem = systemState.meals.find(item => item.id === id);
+  if (!sourceItem) return;
+
+  const newItem = { ...sourceItem, id: `${sourceItem.category.substring(0, 2)}-${Date.now()}` };
+  systemState.meals.push(newItem);
+  renderMealsWorkspace();
+  recalculateMealsTotals();
+}
+
+function renderMealsWorkspace() {
+  const categories = ["breakfast", "lunch", "dinner", "snacks"];
+  
+  categories.forEach(cat => {
+    const catSection = document.getElementById(`meal-${cat}`);
+    if (!catSection) return;
+
+    const contentDiv = catSection.querySelector('.meal-accordion-content');
+    if (!contentDiv) return;
+
+    const items = systemState.meals.filter(m => m.category === cat);
+    
+    if (items.length === 0) {
+      contentDiv.innerHTML = `<p class="empty-meal-text">No food logged for this meal segment. Quick add from panel list.</p>`;
+    } else {
+      contentDiv.innerHTML = '';
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'food-log-card glass-panel';
+        card.setAttribute('data-food-id', item.id);
+        card.innerHTML = `
+          <div class="food-info">
+            <h4>${item.name}</h4>
+            <span class="food-portion">${item.portion}</span>
+            <span class="source-tag ${item.source === 'USDA' ? 'USDA' : 'custom'}">${item.source === 'USDA' ? 'USDA Database' : 'Custom User DB'}</span>
+          </div>
+          <div class="food-macros">
+            <span>${item.kcal} kcal</span>
+            <span>P: ${item.protein}g / C: ${item.carbs}g / F: ${item.fat}g</span>
+          </div>
+          <div class="food-actions">
+            <button class="btn-icon btn-edit-food" title="Edit">✎</button>
+            <button class="btn-icon btn-duplicate-food" title="Duplicate">⧉</button>
+            <button class="btn-icon btn-delete-food" title="Delete">🗑</button>
+          </div>
+        `;
+        contentDiv.appendChild(card);
+      });
+    }
+  });
+}
+
+function recalculateMealsTotals() {
+  let totals = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+  let catTotals = {
+    breakfast: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    lunch: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    dinner: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    snacks: { kcal: 0, protein: 0, carbs: 0, fat: 0 }
+  };
+
+  // Compile categories and master totals
+  systemState.meals.forEach(item => {
+    totals.kcal += item.kcal;
+    totals.protein += item.protein;
+    totals.carbs += item.carbs;
+    totals.fat += item.fat;
+
+    if (catTotals[item.category]) {
+      catTotals[item.category].kcal += item.kcal;
+      catTotals[item.category].protein += item.protein;
+      catTotals[item.category].carbs += item.carbs;
+      catTotals[item.category].fat += item.fat;
+    }
+  });
+
+  // 1. Update Workspace Accordion Headers
+  Object.keys(catTotals).forEach(cat => {
+    const header = document.querySelector(`#meal-${cat} .meal-accordion-header`);
+    if (header) {
+      const kcalDisplay = header.querySelector('.meal-meta .meal-calories');
+      const macroDisplay = header.querySelector('.meal-macros');
+      
+      if (kcalDisplay) kcalDisplay.textContent = `${catTotals[cat].kcal} kcal`;
+      if (macroDisplay) {
+        macroDisplay.innerHTML = `<span>P: ${catTotals[cat].protein}g</span><span>C: ${catTotals[cat].carbs}g</span><span>F: ${catTotals[cat].fat}g</span>`;
+      }
+    }
+  });
+
+  // 2. Update Dashboard Master Card Calorie metrics
+  const dbCalConsumed = document.getElementById('db-cal-consumed');
+  const dbCalTarget = document.getElementById('db-cal-target');
+  const dbCalRem = document.getElementById('db-cal-rem');
+  const dbCalProgress = document.getElementById('db-cal-progress-bar');
+
+  const calTarget = systemState.user.caloriesTarget;
+  const calPercent = Math.min(100, (totals.kcal / calTarget) * 100);
+
+  if (dbCalConsumed) dbCalConsumed.textContent = totals.kcal.toLocaleString();
+  if (dbCalTarget) dbCalTarget.textContent = calTarget.toLocaleString();
+  if (dbCalRem) {
+    const diff = calTarget - totals.kcal;
+    dbCalRem.textContent = diff > 0 ? `${diff.toLocaleString()} kcal remaining` : `${Math.abs(diff).toLocaleString()} kcal exceeding limit`;
+  }
+  if (dbCalProgress) dbCalProgress.style.width = `${calPercent}%`;
+
+  // 3. Update Right Sidebar Donut Chart ratios
+  updateDonutChart(totals.protein, totals.carbs, totals.fat);
+
+  // 4. Update Right Sidebar Meal splits
+  updateMealSplits(catTotals, totals.kcal);
+
+  // 5. Update latest meal log tables on dashboard home
+  updateDashboardMealTable();
+
+  // 6. Recalculate BioScore
+  calculateOverallBioScore();
+}
+
+function updateDonutChart(p, c, f) {
+  const totalGrams = p + c + f;
+  if (totalGrams === 0) return;
+
+  const pPct = Math.round((p / totalGrams) * 100);
+  const cPct = Math.round((c / totalGrams) * 100);
+  const fPct = Math.round((f / totalGrams) * 100);
+
+  // Donut slices dasharray configuration (Circumference is 282.74, so map percentages)
+  const pLength = (pPct / 100) * 282.74;
+  const cLength = (cPct / 100) * 282.74;
+  const fLength = (fPct / 100) * 282.74;
+
+  const circles = document.querySelectorAll('.donut-chart-container circle');
+  if (circles.length >= 3) {
+    // Protein Circle (offset 0)
+    circles[0].setAttribute('stroke-dasharray', `${pLength} 282.74`);
+    
+    // Carbs Circle (offset = negative Protein Length)
+    circles[1].setAttribute('stroke-dasharray', `${cLength} 282.74`);
+    circles[1].setAttribute('stroke-dashoffset', `-${pLength}`);
+    
+    // Fats Circle (offset = negative Protein + Carbs Length)
+    circles[2].setAttribute('stroke-dasharray', `${fLength} 282.74`);
+    circles[2].setAttribute('stroke-dashoffset', `-${pLength + cLength}`);
+  }
+
+  // Update text percentages on sidebar
+  const ratios = document.querySelectorAll('.macro-ratios-list .macro-ratio-item span:last-child');
+  if (ratios.length >= 3) {
+    ratios[0].textContent = `${p}g (${pPct}%)`;
+    ratios[1].textContent = `${c}g (${cPct}%)`;
+    ratios[2].textContent = `${f}g (${fPct}%)`;
+  }
+}
+
+function updateMealSplits(catTotals, grandTotalKcal) {
+  const categories = ["breakfast", "lunch", "dinner", "snacks"];
+  const splitRows = document.querySelectorAll('.meals-calorie-split .split-row strong');
+
+  categories.forEach((cat, index) => {
+    if (splitRows[index]) {
+      const kcal = catTotals[cat].kcal;
+      const pct = grandTotalKcal > 0 ? Math.round((kcal / grandTotalKcal) * 100) : 0;
+      splitRows[index].textContent = `${kcal} kcal (${pct}%)`;
+    }
+  });
+}
+
+function updateDashboardMealTable() {
+  const table = document.querySelector('.meals-list-table');
+  if (!table) return;
+
+  // Preserve header row
+  const header = table.querySelector('.table-header');
+  table.innerHTML = '';
+  table.appendChild(header);
+
+  // Compile unique lists or display last 3 logged items
+  const lastLogs = systemState.meals.slice(-3);
+  
+  if (lastLogs.length === 0) {
+    const row = document.createElement('div');
+    row.className = 'table-row';
+    row.innerHTML = `<span style="grid-column: 1 / -1; text-align:center; color:var(--text-muted);">No meals logged. Tap shortcut to go to diary.</span>`;
+    table.appendChild(row);
+  } else {
+    lastLogs.forEach(log => {
+      const row = document.createElement('div');
+      row.className = 'table-row';
+      row.innerHTML = `
+        <span>${log.category.toUpperCase()}: ${log.name}</span>
+        <span>Today</span>
+        <span class="highlight-calories">${log.kcal} kcal</span>
+        <span>${log.protein}g / ${log.carbs}g / ${log.fat}g</span>
+        <span class="db-source ${log.source === 'USDA' ? 'USDA' : 'custom'}">${log.source.toUpperCase()}</span>
+      `;
+      table.appendChild(row);
+    });
+  }
+}
+
+/**
+ * Settings Goal Adjustments Calculations
+ */
+function initSettingsControls() {
+  const btnSave = document.getElementById('btn-save-settings');
+  if (!btnSave) return;
+
+  btnSave.addEventListener('click', () => {
+    const age = parseInt(document.getElementById('cfg-age').value);
+    const weight = parseInt(document.getElementById('cfg-weight').value);
+    const gender = document.getElementById('cfg-gender').value;
+    const climate = document.getElementById('cfg-climate').value;
+    const activity = document.getElementById('cfg-activity').value;
+    const calories = parseInt(document.getElementById('cfg-calories').value);
+    const audioChecked = document.getElementById('cfg-audio').checked;
+
+    // Recalculate hydration goal baseline: 35ml per kg of weight
+    let waterTarget = Math.round(weight * 35);
+    
+    // Apply climate offsets
+    if (climate === 'tropical') {
+      waterTarget += 500;
+    } else if (climate === 'cold') {
+      waterTarget -= 300;
+    }
+
+    // Save states
+    systemState.user.age = age;
+    systemState.user.weight = weight;
+    systemState.user.gender = gender;
+    systemState.user.climate = climate;
+    systemState.user.activity = activity;
+    systemState.user.caloriesTarget = calories;
+    systemState.user.waterTarget = waterTarget;
+    systemState.user.audioEnabled = audioChecked;
+
+    // Update global UI panels
+    recalculateMealsTotals();
+    updateHydrationUI();
+
+    // Context profiles summary update
+    const profileSummaryTexts = document.querySelectorAll('#panel-settings div div');
+    if (profileSummaryTexts.length >= 3) {
+      profileSummaryTexts[1].innerHTML = `<strong>Basal Metabolic Rate:</strong> ${Math.round(weight * 22)} kcal`;
+      profileSummaryTexts[2].innerHTML = `<strong>Total Energy Goal:</strong> ${calories} kcal`;
+    }
+
+    alert("Nutrition Engine Recalculated! Goals and hydration target remapped successfully.");
+    playClickSound(783.99); // high G note for success confirmation chime
+  });
+}
+
+/**
+ * Recalculate BioScore based on goal thresholds
+ */
+function calculateOverallBioScore() {
+  let score = 100;
+
+  // Calorie calculation
+  let totals = { kcal: 0 };
+  systemState.meals.forEach(item => totals.kcal += item.kcal);
+  
+  const kcalDiff = Math.abs(totals.kcal - systemState.user.caloriesTarget);
+  const kcalScorePenalty = Math.min(25, Math.round((kcalDiff / systemState.user.caloriesTarget) * 25));
+  score -= kcalScorePenalty;
+
+  // Water calculation
+  const waterDiff = Math.abs(systemState.hydration.consumed - systemState.user.waterTarget);
+  const waterScorePenalty = Math.min(20, Math.round((waterDiff / systemState.user.waterTarget) * 20));
+  score -= waterScorePenalty;
+
+  // Deficiencies penalty (simulated)
+  if (totals.kcal < 1000) {
+    score -= 15; // insufficient general logging
+  }
+
+  score = Math.max(30, Math.min(100, score));
+
+  // Update readouts
+  const diagnosticNumber = document.querySelector('.overall-diagnostic-badge .diagnostic-score');
+  const headerScoreText = document.getElementById('header-health-score');
+  
+  if (diagnosticNumber) diagnosticNumber.textContent = score;
+  if (headerScoreText) headerScoreText.textContent = `BioScore: ${score}%`;
+}
+
+/**
+ * Keyboard Console Navigation Listener
+ */
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Ignore keyboard captures inside input boxes
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    const key = e.key.toUpperCase();
+    
+    if (key === 'D') {
+      navigateToModule('dashboard');
+    } else if (key === 'W') {
+      navigateToModule('hydration');
+    } else if (key === 'M') {
+      navigateToModule('meals');
+    } else if (key === 'U') {
+      navigateToModule('micronutrients');
+    } else if (key === 'A') {
+      navigateToModule('analytics');
+    } else if (key === 'R') {
+      navigateToModule('reports');
+    } else if (key === 'S') {
+      navigateToModule('settings');
+    } else if (key === 'H') {
+      // Return to landing page
+      const landingPage = document.getElementById('landing-page');
+      const dashboardPage = document.getElementById('dashboard-page');
+      if (landingPage && dashboardPage && dashboardPage.style.display !== 'none') {
+        landingPage.style.display = 'flex';
+        dashboardPage.style.display = 'none';
+        
+        // play sound
+        playClickSound(300);
+      }
+    }
+  });
+}
+
+/**
+ * Parallax Tilt Mouse Interaction Handler
  */
 function initCardInteractions() {
-  const tiltElements = document.querySelectorAll('.game-card, .glass-panel:not(.header-bar):not(.sidebar):not(.footer-bar)');
+  const tiltElements = document.querySelectorAll('.glass-panel:not(.header-bar):not(.sidebar):not(.footer-bar)');
 
   tiltElements.forEach(el => {
     el.addEventListener('mousemove', (e) => {
       const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left; // x coordinate within the element
-      const y = e.clientY - rect.top;  // y coordinate within the element
+      const x = e.clientX - rect.left; 
+      const y = e.clientY - rect.top;  
       
       const xc = rect.width / 2;
       const yc = rect.height / 2;
       
-      // Calculate tilt angles (limit tilt to max 5 degrees for cards, 2 degrees for main panels)
-      const isCard = el.classList.contains('game-card');
-      const maxTilt = isCard ? 8 : 2;
-      
+      const maxTilt = 1.8;
       const tiltX = ((yc - y) / yc) * maxTilt;
       const tiltY = ((x - xc) / xc) * maxTilt;
 
-      // Subtle scaling on hover
-      const scale = isCard ? 1.04 : 1.01;
-
-      // Apply the styling
-      el.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(${scale})`;
-      
-      // Add dynamic reflection effect (if element has reflection element or standard gradient overlay)
-      if (isCard) {
-        const borderGlow = el.querySelector('.game-glow-border');
-        if (borderGlow) {
-          borderGlow.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255, 255, 255, 0.15) 0%, transparent 60%)`;
-        }
-      }
+      el.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.008)`;
     });
 
     el.addEventListener('mouseleave', () => {
       el.style.transform = '';
-      if (el.classList.contains('game-card')) {
-        const borderGlow = el.querySelector('.game-glow-border');
-        if (borderGlow) {
-          borderGlow.style.background = '';
-        }
-      }
     });
   });
 }
 
 /**
- * UI Audio Feedback Simulation
+ * UI Synthesizer Audio Feedback
  */
-function playClickSound() {
-  // Audio context synthesized beep for standard gaming interface feel!
+function playClickSound(customFreq = 587.33) {
+  if (!systemState.user.audioEnabled) return;
+  
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioCtx.createOscillator();
@@ -248,188 +780,19 @@ function playClickSound() {
     gainNode.connect(audioCtx.destination);
 
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 note
+    oscillator.frequency.setValueAtTime(customFreq, audioCtx.currentTime); // standard beep freq or custom
     gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
 
     oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.15);
+    oscillator.stop(audioCtx.currentTime + 0.12);
   } catch (error) {
-    // Audio Context not allowed by user interaction policy yet, safe to ignore
+    // browser audio policies safeguard
   }
 }
 
 /**
- * Launch Game Simulation Effect
- */
-function launchGame(gameName) {
-  // Visual click launch feedback
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.background = 'rgba(1, 17, 22, 0.85)';
-  overlay.style.backdropFilter = 'blur(15px)';
-  overlay.style.zIndex = '999';
-  overlay.style.display = 'flex';
-  overlay.style.flexDirection = 'column';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
-  overlay.style.opacity = '0';
-  overlay.style.transition = 'opacity 0.4s ease';
-
-  const loader = document.createElement('div');
-  loader.style.width = '50px';
-  loader.style.height = '50px';
-  loader.style.border = '4px solid rgba(255, 255, 255, 0.1)';
-  loader.style.borderTop = '4px solid var(--primary-glow)';
-  loader.style.borderRadius = '50%';
-  loader.style.animation = 'spin 1s linear infinite';
-  
-  const text = document.createElement('h2');
-  text.textContent = `LAUNCHING ${gameName}...`;
-  text.style.fontFamily = 'var(--font-title)';
-  text.style.color = '#fff';
-  text.style.marginTop = '20px';
-  text.style.letterSpacing = '1px';
-  text.style.fontSize = '20px';
-
-  overlay.appendChild(loader);
-  overlay.appendChild(text);
-  document.body.appendChild(overlay);
-
-  // Trigger fade in
-  setTimeout(() => overlay.style.opacity = '1', 50);
-
-  // Play launch chime
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc1.frequency.setValueAtTime(392.00, audioCtx.currentTime); // G4
-    osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.1); // C5
-    osc1.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2); // E5
-
-    osc2.frequency.setValueAtTime(392.00 / 2, audioCtx.currentTime);
-    osc2.frequency.setValueAtTime(523.25 / 2, audioCtx.currentTime + 0.1);
-    
-    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.8);
-
-    osc1.start();
-    osc2.start();
-    osc1.stop(audioCtx.currentTime + 0.8);
-    osc2.stop(audioCtx.currentTime + 0.8);
-  } catch (e) {}
-
-  // Style helper for loader
-  const style = document.createElement('style');
-  style.id = 'temp-spin-style';
-  style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-  document.head.appendChild(style);
-
-  // Dismiss loader after 3 seconds
-  setTimeout(() => {
-    overlay.style.opacity = '0';
-    setTimeout(() => {
-      overlay.remove();
-      const styleEl = document.getElementById('temp-spin-style');
-      if (styleEl) styleEl.remove();
-    }, 400);
-  }, 2500);
-}
-
-/**
- * Settings Modal Simulator
- */
-function openSettingsModal() {
-  const modal = document.createElement('div');
-  modal.style.position = 'fixed';
-  modal.style.top = '0';
-  modal.style.left = '0';
-  modal.style.width = '100vw';
-  modal.style.height = '100vh';
-  modal.style.background = 'rgba(0, 0, 0, 0.6)';
-  modal.style.backdropFilter = 'blur(10px)';
-  modal.style.zIndex = '998';
-  modal.style.display = 'flex';
-  modal.style.alignItems = 'center';
-  modal.style.justifyContent = 'center';
-  modal.style.opacity = '0';
-  modal.style.transition = 'opacity 0.3s ease';
-
-  const content = document.createElement('div');
-  content.className = 'glass-panel';
-  content.style.padding = '30px';
-  content.style.width = '400px';
-  content.style.maxWidth = '90%';
-  content.style.color = '#fff';
-  content.style.display = 'flex';
-  content.style.flexDirection = 'column';
-  content.style.gap = '15px';
-  content.style.border = '1px solid var(--glass-border)';
-
-  const title = document.createElement('h3');
-  title.textContent = 'Settings';
-  title.style.fontFamily = 'var(--font-title)';
-  title.style.fontSize = '22px';
-
-  const settingsList = document.createElement('div');
-  settingsList.style.display = 'flex';
-  settingsList.style.flexDirection = 'column';
-  settingsList.style.gap = '12px';
-  
-  const options = ['Audio Feedback Enabled', 'Fluid Animations', 'High Fidelity Blur', 'Color Accent: Lime Green'];
-  options.forEach(opt => {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.justifyContent = 'space-between';
-    row.style.alignItems = 'center';
-    row.style.fontSize = '14px';
-
-    const label = document.createElement('span');
-    label.textContent = opt;
-
-    const toggle = document.createElement('input');
-    toggle.type = 'checkbox';
-    toggle.checked = true;
-    toggle.style.accentColor = 'var(--primary-glow)';
-    toggle.style.cursor = 'pointer';
-
-    row.appendChild(label);
-    row.appendChild(toggle);
-    settingsList.appendChild(row);
-  });
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'btn btn-primary';
-  closeBtn.textContent = 'Save Changes';
-  closeBtn.style.padding = '10px 20px';
-  closeBtn.style.marginTop = '15px';
-  closeBtn.addEventListener('click', () => {
-    modal.style.opacity = '0';
-    setTimeout(() => modal.remove(), 300);
-  });
-
-  content.appendChild(title);
-  content.appendChild(settingsList);
-  content.appendChild(closeBtn);
-  modal.appendChild(content);
-  document.body.appendChild(modal);
-
-  setTimeout(() => modal.style.opacity = '1', 50);
-}
-
-/**
- * Landing Page to Dashboard Section Routing & Animations
+ * Page Switcher Transition Router (Landing -> Dashboard)
  */
 function initPageRouting() {
   const landingPage = document.getElementById('landing-page');
@@ -437,18 +800,15 @@ function initPageRouting() {
 
   if (!landingPage || !dashboardPage) return;
 
-  // Transition Page function
   function switchPage(toPage, activeTab = null) {
-    playClickSound();
+    playClickSound(659.25);
     
     const currentPage = toPage === 'dashboard' ? landingPage : dashboardPage;
     const nextPage = toPage === 'dashboard' ? dashboardPage : landingPage;
 
-    // Apply fade/scale transition Out
     currentPage.style.opacity = '0';
-    currentPage.style.transform = 'scale(0.96)';
+    currentPage.style.transform = 'scale(0.97)';
     
-    // Controlar opacidad de capas de fondo e inicio/pausa de video
     const bgImage = document.querySelector('.background-image-container');
     const bgVideoContainer = document.querySelector('.background-video-container');
     const bgVideo = document.querySelector('.background-video');
@@ -456,11 +816,11 @@ function initPageRouting() {
     if (toPage === 'dashboard') {
       if (bgImage) bgImage.classList.add('opaque');
       if (bgVideoContainer) bgVideoContainer.style.opacity = '0';
-      if (bgVideo) bgVideo.pause(); // Pausar video en el Dashboard
+      if (bgVideo) bgVideo.pause(); 
     } else {
       if (bgImage) bgImage.classList.remove('opaque');
       if (bgVideoContainer) bgVideoContainer.style.opacity = '1';
-      if (bgVideo) bgVideo.play().catch(e => console.warn('Error al reproducir al volver a Home:', e));
+      if (bgVideo) bgVideo.play().catch(e => console.warn('Autoplay block prevent:', e));
     }
     
     setTimeout(() => {
@@ -468,8 +828,7 @@ function initPageRouting() {
       currentPage.classList.remove('active');
 
       nextPage.style.display = 'flex';
-      // Force repaint to make sure transition plays
-      nextPage.offsetHeight;
+      nextPage.offsetHeight; // Reflow force
       nextPage.classList.add('active');
       
       setTimeout(() => {
@@ -477,39 +836,41 @@ function initPageRouting() {
         nextPage.style.transform = 'scale(1)';
       }, 50);
 
-      // Tab highlighting configuration
+      // Route module segment
       if (toPage === 'dashboard') {
         if (activeTab) {
-          activateDashboardTab(activeTab);
+          navigateToModule(activeTab);
+        } else {
+          navigateToModule('dashboard');
         }
       }
-    }, 450); // matching transition curve duration
+    }, 450); 
   }
 
-  // Hook buttons
+  // Hook navigation buttons
   const launchBtn = document.getElementById('launch-dashboard-btn');
   if (launchBtn) launchBtn.addEventListener('click', () => switchPage('dashboard'));
 
   const playCtaBtn = document.getElementById('cta-nav-play');
-  if (playCtaBtn) playCtaBtn.addEventListener('click', () => switchPage('dashboard', 'games'));
+  if (playCtaBtn) playCtaBtn.addEventListener('click', () => switchPage('dashboard', 'meals'));
 
   const footerGamesBtn = document.getElementById('footer-btn-games');
-  if (footerGamesBtn) footerGamesBtn.addEventListener('click', () => switchPage('dashboard', 'games'));
+  if (footerGamesBtn) footerGamesBtn.addEventListener('click', () => switchPage('dashboard', 'dashboard'));
 
-  // Cards direct links
+  // Feature cards direct routing links
   const gamesCard = document.getElementById('card-games-btn');
-  if (gamesCard) gamesCard.addEventListener('click', () => switchPage('dashboard', 'games'));
+  if (gamesCard) gamesCard.addEventListener('click', () => switchPage('dashboard', 'meals'));
 
   const socialCard = document.getElementById('card-social-btn');
-  if (socialCard) socialCard.addEventListener('click', () => switchPage('dashboard', 'friends'));
+  if (socialCard) socialCard.addEventListener('click', () => switchPage('dashboard', 'hydration'));
 
   const achCard = document.getElementById('card-achievements-btn');
-  if (achCard) achCard.addEventListener('click', () => switchPage('dashboard', 'achievements'));
+  if (achCard) achCard.addEventListener('click', () => switchPage('dashboard', 'micronutrients'));
 
   const storeCard = document.getElementById('card-store-btn');
-  if (storeCard) storeCard.addEventListener('click', () => switchPage('dashboard', 'media'));
+  if (storeCard) storeCard.addEventListener('click', () => switchPage('dashboard', 'analytics'));
 
-  // Header Nav Items Navigation
+  // Header Nav Items routing matching
   const landingNavItems = document.querySelectorAll('.landing-nav-item');
   landingNavItems.forEach(item => {
     item.addEventListener('click', (e) => {
@@ -520,47 +881,24 @@ function initPageRouting() {
       item.classList.add('active');
 
       if (target === 'home') {
-        // Stay here
-      } else if (target === 'library') {
-        switchPage('dashboard', 'games');
-      } else if (target === 'social') {
-        switchPage('dashboard', 'friends');
-      } else if (target === 'achievements') {
-        switchPage('dashboard', 'achievements');
-      } else if (target === 'about') {
-        switchPage('dashboard');
+        // stay here
+      } else if (target === 'meals') {
+        switchPage('dashboard', 'meals');
+      } else if (target === 'hydration') {
+        switchPage('dashboard', 'hydration');
+      } else if (target === 'micronutrients') {
+        switchPage('dashboard', 'micronutrients');
+      } else if (target === 'analytics') {
+        switchPage('dashboard', 'analytics');
       }
     });
   });
 
-  // Return to Landing: logo area in dashboard
+  // Return to landing: logo area click
   const dashboardLogo = document.querySelector('.header-bar .logo-area');
   if (dashboardLogo) {
     dashboardLogo.style.cursor = 'pointer';
     dashboardLogo.addEventListener('click', () => {
-      resetLandingNav();
-      switchPage('landing');
-    });
-  }
-
-  // Return to Landing: Home link in dashboard header
-  const dashboardHomeNav = Array.from(document.querySelectorAll('.header-bar .nav-item')).find(item => item.textContent.trim() === 'Home');
-  if (dashboardHomeNav) {
-    dashboardHomeNav.addEventListener('click', (e) => {
-      e.preventDefault();
-      resetLandingNav();
-      switchPage('landing');
-    });
-  }
-
-  // Return to Landing: Home link in dashboard sidebar
-  const dashboardSidebarHome = Array.from(document.querySelectorAll('.sidebar .menu-item')).find(item => {
-    const text = item.querySelector('span');
-    return text && text.textContent.trim() === 'Home';
-  });
-  if (dashboardSidebarHome) {
-    dashboardSidebarHome.addEventListener('click', (e) => {
-      e.preventDefault();
       resetLandingNav();
       switchPage('landing');
     });
@@ -574,52 +912,5 @@ function initPageRouting() {
         nav.classList.remove('active');
       }
     });
-  }
-
-  function activateDashboardTab(tabName) {
-    // 1. Sidebar menu active element
-    const sidebarItems = document.querySelectorAll('.sidebar .menu-item');
-    sidebarItems.forEach(item => {
-      const text = item.querySelector('span');
-      if (text && text.textContent.trim().toLowerCase() === tabName) {
-        sidebarItems.forEach(sib => sib.classList.remove('active'));
-        item.classList.add('active');
-      }
-    });
-
-    // 2. Header nav active element
-    const headerNavItems = document.querySelectorAll('.header-bar .nav-item');
-    headerNavItems.forEach(item => {
-      if (item.textContent.trim().toLowerCase() === tabName || (tabName === 'games' && item.textContent.trim() === 'Discover')) {
-        headerNavItems.forEach(sib => sib.classList.remove('active'));
-        item.classList.add('active');
-      }
-    });
-  }
-
-  // Hook watch trailer button
-  const watchTrailerBtn = document.getElementById('watch-trailer-btn');
-  if (watchTrailerBtn) {
-    watchTrailerBtn.addEventListener('click', () => {
-      launchGame("AeroSphere Trailer");
-    });
-  }
-}
-
-/**
- * Initialize background video click-to-play on landing page (runs only once)
- */
-function initBackgroundVideoClick() {
-  const landingPage = document.getElementById('landing-page');
-  const video = document.querySelector('.background-video');
-
-  if (landingPage && video) {
-    landingPage.addEventListener('click', () => {
-      if (video.paused) {
-        video.play().then(() => {
-          console.log('Video de fondo: reproducción iniciada tras clic de fallback.');
-        }).catch(err => console.warn('Fallo al reproducir en clic:', err));
-      }
-    }, { once: true }); // Solo escuchar el primer clic para evitar disparar reproducciones repetidas
   }
 }
