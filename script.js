@@ -2,6 +2,15 @@
    NutriTrack Pro - Interactive Dashboard Logic & System States
    ========================================================== */
 
+// Initialize Supabase Client
+const supabaseUrl = 'https://dtgzwgznmstqcekrylqa.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0Z3p3Z3pubXN0cWNla3J5bHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTcyODUsImV4cCI6MjA5OTc5MzI4NX0.rKfFDBJ5uJNfwVBG06NlY5pD27EexzUJKll1NQlFd0c';
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// Auth state tracking
+let currentUserId = null;
+let pendingRoute = null;
+
 // Global System States (USDA FDC & Custom Local Storage simulation)
 let systemState = {
   user: {
@@ -103,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboardShortcuts();
   initCrocodile(); // Load the interactive 3D crocodile assistant
   initMusicControls(); // Load background menu music controls
+  initAuthControls(); // Setup Supabase authentication controllers
   
   // Initial state synchronization
   recalculateMealsTotals();
@@ -655,6 +665,19 @@ function initSettingsControls() {
     systemState.user.waterTarget = waterTarget;
     systemState.user.audioEnabled = audioChecked;
 
+    // Update Supabase if logged in
+    if (currentUserId) {
+      supabase.from('profiles')
+        .update({
+          age: age,
+          gender: gender
+        })
+        .eq('id', currentUserId)
+        .then(({ error }) => {
+          if (error) console.error("Error updating Supabase profile from settings:", error);
+        });
+    }
+
     // Update global UI panels
     recalculateMealsTotals();
     updateHydrationUI();
@@ -810,6 +833,12 @@ function initPageRouting() {
   if (!landingPage || !dashboardPage) return;
 
   function switchPage(toPage, activeTab = null) {
+    if (toPage === 'dashboard' && !currentUserId) {
+      pendingRoute = { toPage, activeTab };
+      showAuthModal();
+      return;
+    }
+
     playClickSound(659.25);
     
     const currentPage = toPage === 'dashboard' ? landingPage : dashboardPage;
@@ -1323,3 +1352,434 @@ function initMusicControls() {
   // Initialize button appearance
   updateMusicButtonsUI();
 }
+
+/* ==========================================================
+   SUPABASE AUTHENTICATION SYSTEM ENGINE
+   ========================================================== */
+
+function showAuthModal(tab = 'login') {
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    switchAuthTab(tab);
+  }
+}
+
+function hideAuthModal() {
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  // Clear inputs
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('reg-username').value = '';
+  document.getElementById('reg-email').value = '';
+  document.getElementById('reg-password').value = '';
+  hideAuthError();
+}
+
+function switchAuthTab(tab) {
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  const formLogin = document.getElementById('login-form');
+  const formRegister = document.getElementById('register-form');
+
+  if (!tabLogin || !tabRegister || !formLogin || !formRegister) return;
+
+  hideAuthError();
+
+  if (tab === 'login') {
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+    formLogin.classList.remove('hidden');
+    formRegister.classList.add('hidden');
+  } else {
+    tabRegister.classList.add('active');
+    tabLogin.classList.remove('active');
+    formRegister.classList.remove('hidden');
+    formLogin.classList.add('hidden');
+  }
+}
+
+function showAuthError(message) {
+  const errorPanel = document.getElementById('auth-error-panel');
+  const errorMsg = document.getElementById('auth-error-msg');
+  if (errorPanel && errorMsg) {
+    errorMsg.textContent = message;
+    errorPanel.classList.remove('hidden');
+    playClickSound(180);
+  }
+}
+
+function hideAuthError() {
+  const errorPanel = document.getElementById('auth-error-panel');
+  if (errorPanel) errorPanel.classList.add('hidden');
+}
+
+function showOnboardingModal(username) {
+  const overlay = document.getElementById('onboarding-overlay');
+  const inputUsername = document.getElementById('onboard-username');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    if (inputUsername) inputUsername.value = username;
+  }
+}
+
+function hideOnboardingModal() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+function applyUserProfile(profile) {
+  // Update state values
+  systemState.user.name = profile.username || "User";
+  systemState.user.age = profile.age || 34;
+  systemState.user.gender = profile.gender || "male";
+  systemState.user.role = profile.role || "user";
+
+  // Sync settings configuration inputs
+  const cfgAge = document.getElementById('cfg-age');
+  const cfgGender = document.getElementById('cfg-gender');
+  if (cfgAge) cfgAge.value = systemState.user.age;
+  if (cfgGender) cfgGender.value = systemState.user.gender;
+
+  // Apply custom profile picture if available, fallback to default
+  const pfpUrl = profile.avatar_base64 || "assets/userpfp.jpg";
+  const headerAvatar = document.getElementById('header-user-avatar');
+  const settingsAvatar = document.getElementById('settings-pfp-preview');
+  const landingMascot = document.getElementById('landing-mascot-avatar');
+  if (headerAvatar) headerAvatar.src = pfpUrl;
+  if (settingsAvatar) settingsAvatar.src = pfpUrl;
+  if (landingMascot) landingMascot.src = pfpUrl;
+
+  // Recalculate targets based on weight baseline
+  systemState.user.waterTarget = Math.round(systemState.user.weight * 35);
+  
+  // Re-sync UI titles and headers
+  const headerName = document.getElementById('header-user-name');
+  if (headerName) headerName.textContent = systemState.user.name;
+
+  const widgetBadge = document.querySelector('.widget-badge');
+  // Update Clinical Compliance badge if admin
+  if (profile.role === 'admin') {
+    if (widgetBadge) {
+      widgetBadge.textContent = "Admin Monitor";
+      widgetBadge.style.background = "#8f00ff"; // Purple indicator
+    }
+  } else {
+    if (widgetBadge) {
+      widgetBadge.textContent = "Active Monitor";
+      widgetBadge.style.background = "#76E012"; // Green indicator
+    }
+  }
+
+  recalculateMealsTotals();
+  updateHydrationUI();
+}
+
+function resetUserProfileToDefault() {
+  systemState.user.name = "Dr. Alberto A.";
+  systemState.user.age = 34;
+  systemState.user.gender = "male";
+  systemState.user.role = "user";
+
+  // Reset default profile pictures
+  const defaultPfp = "assets/userpfp.jpg";
+  const headerAvatar = document.getElementById('header-user-avatar');
+  const settingsAvatar = document.getElementById('settings-pfp-preview');
+  const landingMascot = document.getElementById('landing-mascot-avatar');
+  if (headerAvatar) headerAvatar.src = defaultPfp;
+  if (settingsAvatar) settingsAvatar.src = defaultPfp;
+  if (landingMascot) landingMascot.src = defaultPfp;
+
+  const headerName = document.getElementById('header-user-name');
+  if (headerName) headerName.textContent = systemState.user.name;
+
+  recalculateMealsTotals();
+  updateHydrationUI();
+}
+
+function initAuthControls() {
+  // Tab Switchers
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+  if (tabLogin) tabLogin.addEventListener('click', () => switchAuthTab('login'));
+  if (tabRegister) tabRegister.addEventListener('click', () => switchAuthTab('register'));
+
+  // Form Submissions
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAuthError();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        showAuthError(error.message);
+      }
+    });
+  }
+
+  const registerForm = document.getElementById('register-form');
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAuthError();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const username = document.getElementById('reg-username').value.trim();
+      const age = parseInt(document.getElementById('reg-age').value);
+      const gender = document.getElementById('reg-gender').value;
+
+      // Register the auth credentials
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: username
+          }
+        }
+      });
+
+      if (error) {
+        showAuthError(error.message);
+        return;
+      }
+
+      if (data.user) {
+        // Upsert metadata directly to handle race conditions with backend triggers
+        const { error: profileError } = await supabaseClient.from('profiles')
+          .upsert({
+            id: data.user.id,
+            username: username,
+            age: age,
+            gender: gender
+          });
+        
+        if (profileError) {
+          showAuthError(profileError.message);
+        }
+      }
+    });
+  }
+
+  const onboardingForm = document.getElementById('onboarding-form');
+  if (onboardingForm) {
+    onboardingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUserId) return;
+      const username = document.getElementById('onboard-username').value.trim();
+      const age = parseInt(document.getElementById('onboard-age').value);
+      const gender = document.getElementById('onboard-gender').value;
+
+      const { error } = await supabaseClient.from('profiles')
+        .upsert({
+          id: currentUserId,
+          username: username,
+          age: age,
+          gender: gender
+        });
+
+      if (error) {
+        showAuthError(error.message);
+      } else {
+        // Re-read profile details defensively without .single() to avoid 406 errors
+        const { data: profiles } = await supabaseClient.from('profiles')
+          .select('*')
+          .eq('id', currentUserId);
+        
+        const profile = (profiles && profiles.length > 0) ? profiles[0] : null;
+        if (profile) {
+          applyUserProfile(profile);
+          hideOnboardingModal();
+          hideAuthModal();
+          // Execute redirect
+          if (pendingRoute) {
+            const landingPage = document.getElementById('landing-page');
+            const dashboardPage = document.getElementById('dashboard-page');
+            landingPage.style.display = 'none';
+            landingPage.classList.remove('active');
+            dashboardPage.style.display = 'flex';
+            dashboardPage.offsetHeight;
+            dashboardPage.classList.add('active');
+            dashboardPage.style.opacity = '1';
+            dashboardPage.style.transform = 'scale(1)';
+            
+            if (pendingRoute.activeTab) {
+              navigateToModule(pendingRoute.activeTab);
+            } else {
+              navigateToModule('dashboard');
+            }
+            pendingRoute = null;
+          }
+        }
+      }
+    });
+  }
+
+  // Google OAuth triggers
+  const btnGoogle = document.getElementById('btn-google-login');
+  if (btnGoogle) {
+    btnGoogle.addEventListener('click', async () => {
+      hideAuthError();
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+          queryParams: {
+            prompt: 'select_account'
+          }
+        }
+      });
+      if (error) {
+        showAuthError(error.message);
+      }
+    });
+  }
+
+  // Header Dropdown logic
+  const badge = document.getElementById('user-profile-badge');
+  const dropdown = document.getElementById('profile-dropdown');
+  if (badge && dropdown) {
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+    });
+  }
+
+  // Profile picture change triggers
+  const btnChangePfp = document.getElementById('btn-change-pfp');
+  const previewContainer = document.getElementById('avatar-preview-click');
+  const inputPfpFile = document.getElementById('input-pfp-file');
+
+  if ((btnChangePfp || previewContainer) && inputPfpFile) {
+    const triggerFileSelect = (e) => {
+      e.preventDefault();
+      inputPfpFile.click();
+    };
+    if (btnChangePfp) btnChangePfp.addEventListener('click', triggerFileSelect);
+    if (previewContainer) previewContainer.addEventListener('click', triggerFileSelect);
+
+    inputPfpFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // File size validation (limit to 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Image exceeds the maximum size limit of 2MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Perform high-fidelity canvas resizing and compression
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Target size 128x128 pixels square for ideal circular layout
+          canvas.width = 128;
+          canvas.height = 128;
+
+          // Draw image cropped to square
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 128, 128);
+
+          // Export as compressed JPEG
+          const base64Data = canvas.toDataURL('image/jpeg', 0.8);
+
+          // Update UI previews instantly
+          const headerAvatar = document.getElementById('header-user-avatar');
+          const settingsAvatar = document.getElementById('settings-pfp-preview');
+          const landingMascot = document.getElementById('landing-mascot-avatar');
+          if (headerAvatar) headerAvatar.src = base64Data;
+          if (settingsAvatar) settingsAvatar.src = base64Data;
+          if (landingMascot) landingMascot.src = base64Data;
+
+          // Push to Supabase database if logged in
+          if (currentUserId) {
+            supabaseClient.from('profiles')
+              .update({ avatar_base64: base64Data })
+              .eq('id', currentUserId)
+              .then(({ error }) => {
+                if (error) {
+                  console.error("Error saving avatar to Supabase profiles:", error);
+                  alert("Failed to save avatar image to database.");
+                } else {
+                  playClickSound(783.99); // chime success
+                }
+              });
+          }
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Logout button
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      playClickSound(300);
+      await supabaseClient.auth.signOut();
+    });
+  }
+}
+
+// Bind auth changes
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if (session) {
+    currentUserId = session.user.id;
+    
+    // Check table records defensively (avoids .single() 406 Not Acceptable error on empty query results)
+    const { data: profiles, error } = await supabaseClient.from('profiles')
+      .select('*')
+      .eq('id', currentUserId);
+
+    const profile = (profiles && profiles.length > 0) ? profiles[0] : null;
+
+    if (error || !profile || !profile.age || !profile.gender) {
+      showOnboardingModal(profile?.username || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '');
+    } else {
+      applyUserProfile(profile);
+      hideAuthModal();
+      hideOnboardingModal();
+
+      // Trigger redirection
+      if (pendingRoute) {
+        const landingPage = document.getElementById('landing-page');
+        const dashboardPage = document.getElementById('dashboard-page');
+        
+        landingPage.style.display = 'none';
+        landingPage.classList.remove('active');
+        dashboardPage.style.display = 'flex';
+        dashboardPage.offsetHeight;
+        dashboardPage.classList.add('active');
+        dashboardPage.style.opacity = '1';
+        dashboardPage.style.transform = 'scale(1)';
+
+        if (pendingRoute.activeTab) {
+          navigateToModule(pendingRoute.activeTab);
+        } else {
+          navigateToModule('dashboard');
+        }
+        pendingRoute = null;
+      }
+    }
+  } else {
+    currentUserId = null;
+    resetUserProfileToDefault();
+  }
+});

@@ -128,7 +128,7 @@
 
             <div class="giant-glass-sphere glass-panel">
               <div class="mascot-wrapper">
-                <img src="assets/userpfp.jpg" alt="Clinical DNA Logo" class="mascot-image">
+                <img src="assets/userpfp.jpg" alt="Clinical DNA Logo" class="mascot-image" id="landing-mascot-avatar">
               </div>
               <div class="orbital-ring ring-1"></div>
               <div class="orbital-ring ring-2"></div>
@@ -426,16 +426,28 @@
           </div>
 
           <!-- User Profile (Console Dashboard style) -->
-          <div class="user-profile-badge glass-panel">
-            <img src="assets/avatar-player1.png" alt="Dr. Alberto A. Avatar" class="user-avatar">
+          <div class="user-profile-badge glass-panel" id="user-profile-badge" style="cursor: pointer; position: relative;" title="View Profile Options">
+            <img src="assets/userpfp.jpg" alt="User Avatar" class="user-avatar" id="header-user-avatar">
             <div class="user-info">
-              <span class="user-name">Dr. Alberto A.</span>
+              <span class="user-name" id="header-user-name">Dr. Alberto A.</span>
               <span class="user-gamerscore" id="header-health-score">BioScore: 92%</span>
             </div>
             <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
+
+            <!-- Hidden dropdown for profile actions -->
+            <div id="profile-dropdown" class="profile-dropdown glass-panel hidden">
+              <button class="dropdown-item" id="btn-logout">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Log Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -1251,6 +1263,26 @@
             </div>
 
             <div class="settings-form-layout glass-panel">
+              <!-- Profile Picture Upload Widget -->
+              <div class="settings-section-form" style="margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 20px;">
+                <h3>User Profile Avatar</h3>
+                <div style="display: flex; align-items: center; gap: 20px; margin-top: 15px;">
+                  <div class="avatar-preview-container" id="avatar-preview-click" title="Click to Upload New Photo">
+                    <img src="assets/userpfp.jpg" alt="Profile Picture" id="settings-pfp-preview">
+                    <div id="settings-pfp-overlay">
+                      <span>CHANGE</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-secondary" id="btn-change-pfp" style="padding: 6px 12px; font-size: 11px; align-self: flex-start;">
+                      <span>Upload New Picture</span>
+                    </button>
+                    <input type="file" id="input-pfp-file" accept="image/*" style="display: none;">
+                    <span style="font-size: 10px; color: var(--text-muted);">Maximum size 2MB. Image will be auto-optimized.</span>
+                  </div>
+                </div>
+              </div>
+
               <div class="settings-section-form">
                 <h3>Physiological Details</h3>
                 <div class="form-grid">
@@ -1655,9 +1687,152 @@
     </div> <!-- End of .app-container -->
   </div> <!-- End of #dashboard-page -->
 
+  <!-- ==========================================================
+       SUPABASE AUTHENTICATION MODAL OVERLAY
+       ========================================================== -->
+  <div id="auth-overlay" class="auth-overlay hidden">
+    <div class="auth-card glass-panel">
+      <!-- Logo branding -->
+      <div class="auth-brand">
+        <div class="logo-orb-auth">
+          <img src="assets/logoSphereCore.png" alt="SphereCoreLogo" width="48" height="48">
+        </div>
+        <h2>SphereCore</h2>
+        <p>Quantum Nutrition & Compliance Terminal</p>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login">Log In</button>
+        <button class="auth-tab" id="tab-register">Sign Up</button>
+      </div>
+
+      <!-- Auth Error Notification Panel -->
+      <div id="auth-error-panel" class="auth-error-panel hidden">
+        <span class="error-icon">⚠️</span>
+        <span id="auth-error-msg">Invalid credentials.</span>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <div class="form-group-auth">
+          <label>Email Address</label>
+          <div class="input-wrapper-auth">
+            <input type="email" id="login-email" placeholder="name@domain.com" required class="glass-input-auth">
+          </div>
+        </div>
+        <div class="form-group-auth">
+          <label>Secret Password</label>
+          <div class="input-wrapper-auth">
+            <input type="password" id="login-password" placeholder="••••••••" required class="glass-input-auth">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-auth-submit">
+          <span>Access Terminal</span>
+        </button>
+      </form>
+
+      <!-- Register Form (Hidden by default) -->
+      <form id="register-form" class="auth-form hidden">
+        <div class="form-group-auth">
+          <label>Public Profile Name</label>
+          <div class="input-wrapper-auth">
+            <input type="text" id="reg-username" placeholder="Dr. Alberto A." required class="glass-input-auth">
+          </div>
+        </div>
+        <div class="form-group-auth">
+          <label>Email Address</label>
+          <div class="input-wrapper-auth">
+            <input type="email" id="reg-email" placeholder="name@domain.com" required class="glass-input-auth">
+          </div>
+        </div>
+        <div class="form-group-auth">
+          <label>New Password</label>
+          <div class="input-wrapper-auth">
+            <input type="password" id="reg-password" placeholder="At least 6 characters" required class="glass-input-auth">
+          </div>
+        </div>
+        <div class="form-row-auth">
+          <div class="form-group-auth flex-1">
+            <label>Age (years)</label>
+            <input type="number" id="reg-age" value="34" min="1" max="120" required class="glass-input-auth">
+          </div>
+          <div class="form-group-auth flex-1">
+            <label>Gender Profile</label>
+            <select id="reg-gender" class="glass-input-auth" required>
+              <option value="male" selected>Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-auth-submit">
+          <span>Create Account</span>
+        </button>
+      </form>
+
+      <div class="auth-divider">
+        <span>OR</span>
+      </div>
+
+      <!-- Google Sign In Button -->
+      <button class="btn-google-login glass-panel" id="btn-google-login">
+        <svg viewBox="0 0 48 48" width="20" height="20" class="google-svg" style="margin-right:8px;">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.5 24c0-1.63-.15-3.2-.43-4.75H24v9h12.75c-.55 2.85-2.17 5.27-4.6 6.9l7.2 5.58C43.55 36.6 46.5 30.9 46.5 24z"/>
+          <path fill="#FBBC05" d="M10.54 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.2-5.58c-2.2 1.47-5.01 2.39-8.69 2.39-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       GOOGLE SIGN-IN ONBOARDING DATA CAPTURE MODAL OVERLAY
+       ========================================================== -->
+  <div id="onboarding-overlay" class="auth-overlay hidden">
+    <div class="auth-card glass-panel">
+      <div class="auth-brand">
+        <div class="logo-orb-auth">
+          <img src="assets/logoSphereCore.png" alt="SphereCoreLogo" width="48" height="48">
+        </div>
+        <h2>Onboarding</h2>
+        <p>Complete your physiological configuration profile</p>
+      </div>
+
+      <form id="onboarding-form" class="auth-form">
+        <div class="form-group-auth">
+          <label>Confirm Profile Name</label>
+          <div class="input-wrapper-auth">
+            <input type="text" id="onboard-username" placeholder="Your Name" required class="glass-input-auth">
+          </div>
+        </div>
+        <div class="form-row-auth">
+          <div class="form-group-auth flex-1">
+            <label>Age (years)</label>
+            <input type="number" id="onboard-age" value="34" min="1" max="120" required class="glass-input-auth">
+          </div>
+          <div class="form-group-auth flex-1">
+            <label>Gender Profile</label>
+            <select id="onboard-gender" class="glass-input-auth" required>
+              <option value="male" selected>Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-auth-submit" style="margin-top: 15px;">
+          <span>Submit Profile Data</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=5"></script>
 </body>
 
 </html>
