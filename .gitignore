@@ -2,3 +2,6 @@
 .DS_Store
 test/
 node_modules/
+/AppSoundMenu.wav
+/AppSoundMenu_short.mp3
+/assets/AppSoundMenu.wav

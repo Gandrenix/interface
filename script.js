@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSettingsControls();
   initKeyboardShortcuts();
   initCrocodile(); // Load the interactive 3D crocodile assistant
+  initMusicControls(); // Load background menu music controls
   
   // Initial state synchronization
   recalculateMealsTotals();
@@ -203,6 +204,13 @@ function navigateToModule(moduleName) {
       ws.classList.add('active');
     }
   });
+
+  // If reports workspace is activated, trigger resize event to initialize Three.js canvas dimensions
+  if (moduleName === 'reports') {
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
+  }
 
   // 2. Update Context Panels Visibility
   const panels = document.querySelectorAll('.context-panel-section');
@@ -773,7 +781,7 @@ function playClickSound(customFreq = 587.33) {
   if (!systemState.user.audioEnabled) return;
   
   try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioCtx = getAudioContext();
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
 
@@ -950,12 +958,16 @@ function initCrocodile() {
 
   // Camera
   const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-  camera.position.set(0, 0, 3.8);
+  camera.position.set(0, 0, 4.0);
 
   // Renderer
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.physicallyCorrectLights = true;
   container.appendChild(renderer.domElement);
 
   // Lights
@@ -973,8 +985,8 @@ function initCrocodile() {
 
     // Rotation and scaling
     model.rotation.set(0, Math.PI, 0);
-    model.position.set(0, -0.6, 0);
-    model.scale.set(1.6, 1.6, 1.6);
+    model.position.set(0, -0.2, 0);
+    model.scale.set(2.9, 2.9, 2.9);
     scene.add(model);
 
     // Skeleton, Bones and Animations
@@ -1128,5 +1140,186 @@ function initCrocodile() {
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
     });
+
+    // Interactive speech bubble triggers on click
+    let bubbleTimeout;
+    let isTyping = false;
+
+    container.addEventListener('click', () => {
+      if (isTyping) return;
+
+      const bubble = document.getElementById('crocodile-speech-bubble');
+      if (!bubble) return;
+
+      // Show bubble and clear previous text
+      bubble.classList.add('show');
+      const textElement = bubble.querySelector('.bubble-text');
+      textElement.textContent = '';
+
+      const message = "Hola! lo siento... pero aún estoy en progreso";
+      let charIndex = 0;
+      isTyping = true;
+
+      clearTimeout(bubbleTimeout);
+
+      function typeCharacter() {
+        if (charIndex < message.length) {
+          textElement.textContent += message.charAt(charIndex);
+          charIndex++;
+
+          // Play sound for character (exclude spaces for natural speech cadence)
+          if (message.charAt(charIndex - 1) !== ' ') {
+            playTalkSound();
+          }
+
+          setTimeout(typeCharacter, 60);
+        } else {
+          isTyping = false;
+          // Hold bubble visible for 3.5 seconds, then fade out
+          bubbleTimeout = setTimeout(() => {
+            bubble.classList.remove('show');
+          }, 3500);
+        }
+      }
+
+      typeCharacter();
+    });
   });
+}
+
+// Shared global AudioContext to prevent exceeding the browser limit (maximum 6 active contexts)
+let sharedAudioCtx = null;
+
+function getAudioContext() {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume();
+  }
+  return sharedAudioCtx;
+}
+
+/**
+ * Synthesizer Talk Audio Feedback for assistant messages (Web Audio API)
+ */
+function playTalkSound() {
+  if (!systemState.user.audioEnabled) return;
+
+  try {
+    const audioCtx = getAudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    // Warm triangle wave for a cozy retro assistant chime
+    oscillator.type = 'triangle';
+    
+    // Pleasant high-pitch frequency range with a subtle pitch sweep
+    const baseFreq = 580 + Math.random() * 180;
+    oscillator.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(baseFreq + 90, audioCtx.currentTime + 0.08);
+
+    gainNode.gain.setValueAtTime(0.012, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.08);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.08);
+  } catch (error) {
+    // Browser audio policy safety catch
+  }
+}
+
+/**
+ * Background Menu Music Manager (AppSoundMenu_short.mp3)
+ */
+let menuMusic = new Audio('assets/AppSoundMenu_short.mp3');
+menuMusic.loop = true;
+menuMusic.volume = 0.35; // Comfortable default background volume level
+let musicPlaying = false;
+
+function startMenuMusic() {
+  menuMusic.play().then(() => {
+    musicPlaying = true;
+    updateMusicButtonsUI();
+    // Clean up interaction triggers
+    document.removeEventListener('click', startMenuMusic);
+    document.removeEventListener('keydown', startMenuMusic);
+  }).catch(err => {
+    // Autoplay blocked (waiting for interaction)
+  });
+}
+
+function toggleMusic() {
+  if (musicPlaying) {
+    menuMusic.pause();
+    musicPlaying = false;
+  } else {
+    menuMusic.play().catch(e => console.warn("Audio play prevented:", e));
+    musicPlaying = true;
+    // In case the interaction triggers hadn't fired yet
+    document.removeEventListener('click', startMenuMusic);
+    document.removeEventListener('keydown', startMenuMusic);
+  }
+  updateMusicButtonsUI();
+}
+
+function updateMusicButtonsUI() {
+  const buttons = [
+    document.getElementById('music-toggle-landing'),
+    document.getElementById('music-toggle-dashboard')
+  ];
+  buttons.forEach(btn => {
+    if (!btn) return;
+    const svg = btn.querySelector('.speaker-icon');
+    if (!svg) return;
+
+    if (musicPlaying) {
+      btn.style.borderColor = 'rgba(11, 212, 231, 0.7)';
+      btn.style.boxShadow = '0 0 8px rgba(11, 212, 231, 0.4)';
+      btn.style.color = 'var(--secondary-glow)';
+      // Speaker ON Icon
+      svg.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      `;
+    } else {
+      btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+      btn.style.boxShadow = 'none';
+      btn.style.color = 'rgba(255, 255, 255, 0.4)';
+      // Speaker OFF / Mute Icon
+      svg.innerHTML = `
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <line x1="23" y1="9" x2="17" y2="15"></line>
+        <line x1="17" y1="9" x2="23" y2="15"></line>
+      `;
+    }
+  });
+}
+
+function initMusicControls() {
+  const landingBtn = document.getElementById('music-toggle-landing');
+  const dashboardBtn = document.getElementById('music-toggle-dashboard');
+
+  if (landingBtn) {
+    landingBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Avoid triggering startMenuMusic listener
+      toggleMusic();
+    });
+  }
+  if (dashboardBtn) {
+    dashboardBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Avoid triggering startMenuMusic listener
+      toggleMusic();
+    });
+  }
+
+  // Bind keydown/click trigger to startup audio on first page interaction
+  document.addEventListener('click', startMenuMusic);
+  document.addEventListener('keydown', startMenuMusic);
+
+  // Initialize button appearance
+  updateMusicButtonsUI();
 }

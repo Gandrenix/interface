@@ -62,7 +62,15 @@
           <a href="#" class="landing-nav-item" data-target="analytics">Analytics</a>
         </nav>
 
-        <div class="landing-header-right">
+        <div class="landing-header-right" style="display: flex; align-items: center; gap: 12px;">
+          <!-- Music Toggle Button (Landing) -->
+          <button class="music-toggle-btn glass-panel" id="music-toggle-landing" title="Toggle Background Music" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; padding: 0; cursor: pointer; color: var(--secondary-glow); border: 1px solid rgba(11, 212, 231, 0.3); transition: all 0.3s ease; background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speaker-icon">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </button>
+
           <button class="btn-play-cta btn" id="cta-nav-play">
             <span>Launch System</span>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3"
@@ -120,8 +128,7 @@
 
             <div class="giant-glass-sphere glass-panel">
               <div class="mascot-wrapper">
-                <img src="assets/ChatGPT Image Jul 14, 2026, 10_31_36 PM.png" alt="Clinical DNA Logo"
-                  class="mascot-image">
+                <img src="assets/userpfp.jpg" alt="Clinical DNA Logo" class="mascot-image">
               </div>
               <div class="orbital-ring ring-1"></div>
               <div class="orbital-ring ring-2"></div>
@@ -399,7 +406,15 @@
           <a href="#" class="nav-item" data-tab="support">Support</a>
         </nav>
 
-        <div class="header-right">
+        <div class="header-right" style="display: flex; align-items: center; gap: 12px;">
+          <!-- Music Toggle Button (Dashboard) -->
+          <button class="music-toggle-btn glass-panel" id="music-toggle-dashboard" title="Toggle Background Music" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; padding: 0; cursor: pointer; color: var(--secondary-glow); border: 1px solid rgba(11, 212, 231, 0.3); transition: all 0.3s ease; background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="speaker-icon">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </button>
+
           <!-- Search Bar -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
@@ -1208,13 +1223,22 @@
             </div>
 
             <!-- Clinical Compliance Card containing the Crocodile -->
-            <div class="summary-widget glass-panel" style="margin-top: 15px; padding: 20px;">
-              <div class="widget-header">
+            <div class="summary-widget glass-panel" style="margin-top: 15px; padding: 8px 12px 12px 12px;">
+              <div class="widget-header" style="margin-bottom: 4px; padding-bottom: 4px;">
                 <h3>Clinical Compliance Assistant</h3>
                 <span class="widget-badge bg-green">Active Monitor</span>
               </div>
-              <div class="widget-body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; position: relative;">
-                <div id="cocodrilo-canvas-container" style="width: 100%; height: 100%; position: relative; overflow: hidden; border-radius: 12px; background: rgba(0, 0, 0, 0.15);"></div>
+              <div class="widget-body"
+                style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 450px; position: relative;">
+
+                <!-- Crocodile speech bubble overlay -->
+                <div id="crocodile-speech-bubble" class="crocodile-bubble">
+                  <p class="bubble-text"></p>
+                </div>
+
+                <div id="cocodrilo-canvas-container"
+                  style="width: 100%; height: 100%; position: relative; overflow: hidden; border-radius: 12px; background: rgba(0, 0, 0, 0.15); cursor: pointer;">
+                </div>
               </div>
             </div>
           </div>

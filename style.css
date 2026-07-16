@@ -3460,3 +3460,55 @@ body {
   border-radius: 20px;
   background: var(--glass-bg);
 }
+
+/* Crocodile Speech Bubble Styles */
+.crocodile-bubble {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.85);
+  opacity: 0;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: rgba(11, 212, 231, 0.08);
+  border: 1px solid rgba(11, 212, 231, 0.45);
+  box-shadow: 0 0 20px rgba(11, 212, 231, 0.15), inset 0 0 10px rgba(11, 212, 231, 0.1);
+  color: #ffffff;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 10;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  text-align: center;
+  max-width: 85%;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(11, 212, 231, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.crocodile-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0;
+  border-style: solid;
+  border-color: rgba(11, 212, 231, 0.45) transparent;
+  display: block;
+  width: 0;
+}
+
+.crocodile-bubble.show {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* Music Toggle Button Hover Glow */
+.music-toggle-btn:hover {
+  border-color: rgba(11, 212, 231, 0.8) !important;
+  box-shadow: 0 0 12px rgba(11, 212, 231, 0.5) !important;
+  transform: scale(1.05);
+}
